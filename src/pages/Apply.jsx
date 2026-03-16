@@ -37,7 +37,7 @@ export default function Apply() {
     <div>
       <h1 className="text-2xl font-bold">Apply: {job.title}</h1>
       {submitted ? (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200">Thank you — your application was submitted.</div>
+  <div className="mt-4 p-4" style={{ backgroundColor: 'rgba(var(--color-success), 0.08)', border: '1px solid rgba(var(--color-success), 0.16)' }}>Thank you — your application was submitted.</div>
       ) : (
         <form onSubmit={onSubmit} className="mt-4 space-y-3 max-w-md">
           <div>
@@ -57,7 +57,7 @@ export default function Apply() {
             <input type="file" onChange={(e) => setCv(e.target.files ? e.target.files[0] : null)} />
           </div>
           <div>
-            <button className="px-4 py-2 bg-indigo-600 text-white rounded">Submit</button>
+            <button className="px-4 py-2 btn-primary rounded">Submit</button>
           </div>
         </form>
       )}

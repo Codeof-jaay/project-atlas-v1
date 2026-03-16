@@ -12,7 +12,6 @@ export default function Applicants() {
 
   function onChangeStatus(appId, status) {
     updateApplicationStatus(appId, status)
-    // force re-render via location change or window reload for simplicity
     window.location.reload()
   }
 

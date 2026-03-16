@@ -13,42 +13,42 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 font-sans text-slate-200">
+    <div className="min-h-screen flex items-center justify-center p-6 font-sans" style={{color: 'rgb(var(--text))' }}>
       {/* Background Gradient Orbs */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-[#274690] blur-[120px] opacity-20" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#576CA8] blur-[120px] opacity-20" />
       </div>
 
-      <div className="w-full max-max-w-md bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 shadow-2xl">
+  <div className="w-full max-max-w-md card backdrop-blur-xl rounded-3xl p-8 shadow-2xl">
         
         {/* Header Section */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#576CA8] to-[#274690] bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold" style={{ background: 'linear-gradient(90deg, rgba(var(--color-primary),1), rgba(var(--color-primary),0.8))', WebkitBackgroundClip: 'text', color: 'rgba(var(--text),0.8)' }}>
             Hybrid ATS & HR
           </h1>
-          <p className="text-slate-400 mt-2">
+          <p className="mt-2 text-muted">
             {view === 'login' ? 'Welcome back' : `Join as ${view}`}
           </p>
         </div>
 
         {/* View Toggle Controls */}
-        <div className="flex bg-slate-950/50 p-1 rounded-2xl mb-8 border border-slate-800">
+  <div className="flex p-1 rounded-2xl mb-8  border border-slate-800 border-opacity-10" style={{ backgroundColor: 'rgba(var(--text),0.04)' }}>
           <button
             onClick={() => setView('login')}
-            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'login' ? 'bg-[#274690] text-white' : 'text-slate-500'}`}
+            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'login' ? 'btn-primary text-white' : 'text-muted'}`}
           >
             <LogIn size={18} /> Login
           </button>
           <button
             onClick={() => setView('employer')}
-            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'employer' ? 'bg-[#274690] text-white' : 'text-slate-500'}`}
+            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'employer' ? 'btn-primary text-white' : 'text-muted'}`}
           >
             <Building2 size={18} /> Employer
           </button>
           <button
             onClick={() => setView('employee')}
-            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'employee' ? 'bg-[#274690] text-white' : 'text-slate-500'}`}
+            className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-2 ${view === 'employee' ? 'btn-primary text-white' : 'text-muted'}`}
           >
             <User size={18} /> Employee
           </button>
@@ -73,7 +73,7 @@ const AuthPage = () => {
                   <input 
                     type="email" 
                     placeholder="name@company.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#576CA8] transition-colors"
+                    className="w-full input"
                   />
                 </div>
 
@@ -84,7 +84,7 @@ const AuthPage = () => {
                     <input 
                       type="text" 
                       placeholder="TechCorp Ltd"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#576CA8] transition-colors"
+                      className="w-full input"
                     />
                   </motion.div>
                 )}
@@ -96,7 +96,7 @@ const AuthPage = () => {
                     <input 
                       type="text" 
                       placeholder="John Doe"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#576CA8] transition-colors"
+                      className="w-full input"
                     />
                   </motion.div>
                 )}
@@ -107,12 +107,12 @@ const AuthPage = () => {
                   <input 
                     type="password" 
                     placeholder="••••••••"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#576CA8] transition-colors"
+                    className="w-full input"
                   />
                 </div>
 
                 {/* Submit Button */}
-                <button className="w-full bg-gradient-to-r from-[#274690] to-[#576CA8] text-white font-bold py-3 rounded-xl mt-4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                <button className="w-full btn-primary font-bold py-3 rounded-xl mt-4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
                   {view === 'login' ? 'Sign In' : 'Create Account'}
                   <ArrowRight size={18} />
                 </button>
@@ -126,7 +126,7 @@ const AuthPage = () => {
           {view === 'login' ? "Don't have an account?" : "Already have an account?"}
           <button 
             onClick={() => setView(view === 'login' ? 'employee' : 'login')}
-            className="ml-2 text-[#576CA8] hover:underline font-medium"
+            className="ml-2 muted-link hover:underline font-medium"
           >
             {view === 'login' ? "Sign up" : "Log in"}
           </button>

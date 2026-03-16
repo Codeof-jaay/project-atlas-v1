@@ -23,7 +23,7 @@ export default function JobDetails() {
         </ul>
       </div>
       <div className="mt-4">
-        <Link to={`/apply/${job.id}`} className="px-4 py-2 bg-indigo-600 text-white rounded">Apply for Job</Link>
+  <Link to={`/apply/${job.id}`} className="px-4 py-2 btn-primary rounded">Apply for Job</Link>
       </div>
     </div>
   )

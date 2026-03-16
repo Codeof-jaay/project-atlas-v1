@@ -11,7 +11,7 @@ export default function Landing() {
         <h1 className="text-3xl font-bold">Hire & Get Hired — DashHR</h1>
         <p className="mt-2 text-gray-600">A simple hiring marketplace MVP.</p>
         <div className="mt-4 space-x-3">
-          <Link to="/jobs" className="px-4 py-2 bg-indigo-600 text-white rounded">Browse Jobs</Link>
+          <Link to="/jobs" className="px-4 py-2 btn-primary rounded">Browse Jobs</Link>
           <Link to="/employer" className="px-4 py-2 border rounded">Post a Job</Link>
         </div>
       </section>

@@ -7,12 +7,12 @@ import Apply from './pages/Apply'
 import Dashboard from './pages/Dashboard'
 import Employer from './pages/Employer'
 import Applicants from './pages/Applicants'
-import Auth from './pages/Auth'
+import AuthPage from './pages/AuthPage'
 import Navbar from './components/Navbar'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen text-gray-900">
       <Navbar />
       <main className="container mx-auto p-4">
         <Routes>
@@ -23,7 +23,8 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/employer" element={<Employer />} />
           <Route path="/employer/job/:id/applicants" element={<Applicants />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/:mode" element={<AuthPage />} />
         </Routes>
       </main>
     </div>
