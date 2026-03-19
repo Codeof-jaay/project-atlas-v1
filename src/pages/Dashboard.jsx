@@ -1,9 +1,21 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getApplications, getJobs } from '../utils/store'
+import { getRole } from '../utils/auth'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const apps = getApplications()
   const jobs = getJobs()
+
+  // Restrict Dashboard to Candidates only (role 'C')
+  useEffect(() => {
+    const role = getRole()
+    if (role !== 'C') {
+      navigate('/')
+    }
+  }, [navigate])
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Candidate Dashboard</h1>

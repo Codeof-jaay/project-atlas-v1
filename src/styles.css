@@ -18,9 +18,10 @@
 	--color-primary: 99 102 241; /* indigo-500 adjusted */
 	--color-primary-foreground: 255 255 255;
 	--color-secondary: 243 244 246; /* gray-100 */
-	--color-peripheral: 156 163 175; /* gray-400 */
+	--color-peripheral: 128 128 128;
 	--color-accent: 34 197 94; /* green-500 */
 	--color-success: 34 197 94;
+	--border-color: 156 163 175; /* gray-400 */
 	--bg: 17 24 39; /* gray-900 */
 	--text: 243 244 246; /* gray-100 */
 }
@@ -32,19 +33,20 @@
 .bg-accent { background-color: rgb(var(--color-accent)); }
 .bg-success { background-color: rgb(var(--color-success)); }
 .text-muted { color: rgb(var(--color-peripheral)); }
+.border-muted { border-color: rgb(var(--border-color)); }
 
 body { background-color: rgb(var(--bg)); color: rgb(var(--text)); }
 
 /* Card surface used instead of bg-white/bg-slate in components */
 .card {
-	background-color: rgba(var(--text), 0.04);
-	border: 1px solid rgba(var(--text), 0.06);
+	background-color: rgb(var(--bg));
+	border: 1px solid rgba(var(--color-peripheral), 0.3);
 	color: inherit;
 }
 
 .input {
-	background-color: rgba(var(--text), 0.02);
-	border: 1px solid rgba(var(--text), 0.08);
+	background-color: rgba(var(--text), 0.2);
+	border: 1px solid rgba(var(--text), 0.8);
 	padding: 0.75rem 1rem;
 	border-radius: 0.75rem;
 }
@@ -55,5 +57,14 @@ body { background-color: rgb(var(--bg)); color: rgb(var(--text)); }
 }
 
 .muted-link { color: rgba(var(--color-primary), 1); }
+
+/* Custom border utilities using CSS variables */
+.border-subtle {
+	border-color: rgba(var(--color-peripheral), 0.3);
+}
+
+.border-light {
+	border-color: rgba(var(--color-peripheral), 0.2);
+}
 
 

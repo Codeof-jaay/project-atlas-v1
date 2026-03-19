@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 export default function JobCard({ job }) {
   return (
-    <div className="border rounded p-4 border-slate-200">
+    <div className="border rounded p-4 border-gray-600">
       <h3 className="font-semibold text-lg">{job.title}</h3>
       <p className="text-sm text-gray-600">{job.company} — {job.location}</p>
       <div className="mt-3 flex items-center justify-between">
