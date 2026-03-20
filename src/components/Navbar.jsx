@@ -59,25 +59,25 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="shadow-md bg-primary/10">
-      <div className="container mx-auto p-4 flex items-center justify-between">
+    <nav className="shadow-md bg-primary/10 fixed w-full z-50 bg-accent">
+      <div className="container mx-auto p-4 flex items-center justify-between text-gray-200">
         <Link to="/" className="font-bold text-xl text-primary">DashHR</Link>
         
         <div className="space-x-4 flex items-center">
           {/* Navigation Links */}
           {!authenticated && (
             <>
-              <Link to="/jobs" className="text-sm text-muted hover:text-primary transition">Jobs</Link>
-              <Link to="/auth" className="text-sm text-muted hover:text-primary transition">Login</Link>
+              <Link to="/jobs" className="text-sm text-primaryhover:text-primary transition">Jobs</Link>
+              <Link to="/auth" className="text-sm hover:text-primary transition">Login</Link>
             </>
           )}
 
           {authenticated && (
             <>
-              <Link to="/jobs" className="text-sm text-muted hover:text-primary transition">Jobs</Link>
-              {role === 'C' && <Link to="/dashboard" className="text-sm text-muted hover:text-primary transition">Dashboard</Link>}
-              {role === 'R' && <Link to="/employer" className="text-sm text-muted hover:text-primary transition">Employer</Link>}
-              {role === 'A' && <Link to="/admin" className="text-sm text-muted hover:text-primary transition">Admin</Link>}
+              <Link to="/jobs" className="text-sm text-primary hover:text-primary transition">Jobs</Link>
+              {role === 'C' && <Link to="/dashboard" className="text-sm text-primary hover:text-primary transition">Dashboard</Link>}
+              {role === 'R' && <Link to="/employer" className="text-sm text-primary hover:text-primary transition">Employer</Link>}
+              {role === 'A' && <Link to="/admin" className="text-sm text-primary hover:text-primary transition">Admin</Link>}
             </>
           )}
 

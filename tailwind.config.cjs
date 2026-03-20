@@ -4,6 +4,10 @@ module.exports = {
     extend: {
       colors: {
         primary: 'var(--color-primary)',
+        secondary: 'var(--color-secondary)',
+        peripheral: 'var(--color-peripheral)',
+        accent: 'var(--color-accent)',
+        success: 'var(--color-success)',
       },
     },
   },
