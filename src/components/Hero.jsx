@@ -40,7 +40,7 @@ export default function Hero() {
         {/* Badge */}
         <motion.div
           variants={itemVariants}
-          className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30"
+          className="mb-6 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30"
         >
           <Briefcase size={16} className="text-primary" />
           <span className="text-sm font-medium text-primary">The Modern Hiring Platform</span>
@@ -94,20 +94,44 @@ export default function Hero() {
           whileHover={{ y: -10 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="relative bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl p-1 overflow-hidden border border-primary/20">
-            <div className="bg-black/30 backdrop-blur-sm rounded-xl p-8 space-y-4">
-              <div className="h-3 bg-primary/30 rounded-full w-2/3"></div>
-              <div className="h-3 bg-primary/20 rounded-full w-3/4"></div>
-              <div className="grid grid-cols-3 gap-3 mt-6">
-                <div className="h-20 bg-primary/10 rounded-lg"></div>
-                <div className="h-20 bg-secondary/10 rounded-lg"></div>
-                <div className="h-20 bg-primary/10 rounded-lg"></div>
+          <div className="relative bg-gradient-to-br from-primary/30 to-secondary/30 rounded-2xl p-1 overflow-hidden border border-primary/40 shadow-2xl">
+            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl p-8 space-y-4">
+              {/* Header bar */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="h-3 bg-primary rounded-full w-1/3"></div>
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                </div>
+              </div>
+
+              {/* Content lines */}
+              <div className="space-y-3">
+                <div className="h-2 bg-gray-300 dark:bg-gray-600 rounded-full w-2/3"></div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-4/5"></div>
+              </div>
+
+              {/* Stats cards grid */}
+              <div className="grid grid-cols-3 gap-3 mt-8">
+                <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+                  <div className="h-2 bg-primary rounded mb-2 w-2/3"></div>
+                  <div className="h-3 bg-primary/80 rounded font-bold text-sm text-primary">500+</div>
+                </div>
+                <div className="bg-secondary/10 rounded-lg p-4 border border-secondary/20">
+                  <div className="h-2 bg-secondary rounded mb-2 w-2/3"></div>
+                  <div className="h-3 bg-secondary/80 rounded font-bold text-sm text-secondary">1.2K+</div>
+                </div>
+                <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+                  <div className="h-2 bg-primary rounded mb-2 w-2/3"></div>
+                  <div className="h-3 bg-primary/80 rounded font-bold text-sm text-primary">98%</div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-2xl animate-pulse"></div>
+          {/* Glow effect */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 rounded-3xl blur-xl opacity-40 -z-10 animate-pulse"></div>
         </motion.div>
       </motion.div>
     </section>

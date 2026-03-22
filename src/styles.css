@@ -10,7 +10,8 @@
 	--color-peripheral: 107 114 128; /* gray-500 */
 	--color-accent: 78 110 93; /* emerald-500 */
 	--color-success: 16 185 129; /* green-500 */
-	--bg: 243 223 193; /* champagne mist */
+	--bg: white; 
+	--bg-card: 243 223 193; /* champagne mist */
 	--text:  31 19 0; /* gray-900 */
 }
 
@@ -28,6 +29,7 @@
 
 /* Utility classes using CSS variables */
 .bg-primary { background-color: rgb(var(--color-primary)); }
+.bg-secondary { background-color: rgb(var(--color-primary-background)); }
 .text-primary { color: rgb(var(--color-primary)); }
 .btn-primary { background-color: rgb(var(--color-primary)); color: rgb(var(--color-primary-foreground)); }
 .bg-accent { background-color: rgb(var(--color-accent)); }
@@ -39,7 +41,7 @@ body { background-color: rgb(var(--bg)); color: rgb(var(--text)); }
 
 /* Card surface used instead of bg-white/bg-slate in components */
 .card {
-	background-color: rgb(var(--bg));
+	background-color: rgb(var(--bg-card));
 	border: 1px solid rgba(var(--color-peripheral), 0.3);
 	color: inherit;
 }
