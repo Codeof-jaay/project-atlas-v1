@@ -73,7 +73,7 @@ export default function Hero() {
         >
           <Link
             to="/auth"
-            className="group relative px-8 py-4 bg-gradient-to-r from-secondary to-secondary/90 text-white rounded-lg font-semibold overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2"
+            className="group relative px-8 py-4 bg-gradient-to-r from-primary to-primary/90 text-green-500 hover:text-blue-500 rounded-lg font-semibold overflow-hidden transition-all duration-300 hover:bg-accent hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2"
           >
             <span>Get Started Free</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -95,7 +95,7 @@ export default function Hero() {
           transition={{ duration: 0.3 }}
         >
           <div className="relative bg-gradient-to-br from-primary/30 to-secondary/30 rounded-2xl p-1 overflow-hidden border border-primary/40 shadow-2xl">
-            <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-md rounded-xl p-8 space-y-4">
+            <div className="bg-accent backdrop-blur-md rounded-xl p-8 space-y-4">
               {/* Header bar */}
               <div className="flex items-center justify-between mb-6">
                 <div className="h-3 bg-primary rounded-full w-1/3"></div>
