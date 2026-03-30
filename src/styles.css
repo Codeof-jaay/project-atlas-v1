@@ -10,7 +10,7 @@
 	--color-peripheral: 107 114 128; /* gray-500 */
 	--color-accent: 78 110 93; /* emerald-500 */
 	--color-success: 16 185 129; /* green-500 */
-	--bg: white; 
+	--bg: 248 237 221; 
 	--bg-card: 243 223 193; /* champagne mist */
 	--text:  31 19 0; /* gray-900 */
 }
@@ -20,11 +20,12 @@
 	--color-primary-foreground: 255 255 255;
 	--color-secondary: 243 244 246; /* gray-100 */
 	--color-peripheral: 128 128 128;
-	--color-accent: 34 197 94; /* green-500 */
+	--color-accent: 7 86 136; /* green-500 */
 	--color-success: 34 197 94;
 	--border-color: 156 163 175; /* gray-400 */
-	--bg: 54 48 32; /* dark khaki */
-	--text: 243 244 246; /* gray-100 */
+	--bg: white ; 
+	--bg-card: 7 86 136;
+	--text: black; 
 }
 
 /* Utility classes using CSS variables */

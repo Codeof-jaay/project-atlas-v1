@@ -5,6 +5,7 @@ import Hero from '../components/Hero'
 import FeatureCard from '../components/FeatureCard'
 import StatCard from '../components/StatCard'
 import JobCard from '../components/JobCard'
+import ScrollToTop from '../components/ScrollToTop'
 import { getJobs } from '../utils/store'
 
 const FEATURES = [
@@ -79,6 +80,7 @@ export default function Landing() {
 
   return (
     <div className="w-full">
+      <ScrollToTop />
       {/* Hero Section */}
       <Hero />
 

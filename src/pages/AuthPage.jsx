@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { setAuth } from "../utils/auth";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, User, LogIn, ArrowRight } from 'lucide-react';
 
 const AuthPage = () => {
+  const navigate = useNavigate();
   // States: 'login' | 'employer' | 'employee'
   const [view, setView] = useState('login');
 
@@ -25,10 +27,10 @@ const AuthPage = () => {
     exit: { opacity: 0, x: -20 },
   };
 
-  // Map view to role code
+  // Map view to role code ('C' for candidate, 'R' for employer)
   const getRoleCode = () => {
-    if (view === 'employer') return 'R'; // Recruiter
-    if (view === 'employee') return 'C'; // Candidate
+    if (view === 'employer') return 'R';
+    if (view === 'employee') return 'C';
     return null;
   };
 
@@ -38,16 +40,18 @@ const AuthPage = () => {
     setMessage('');
 
     try {
-      // FastAPI's OAuth2PasswordRequestForm expects form-data, not JSON
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
-
+      // Backend now accepts JSON with email and password
       console.log('Attempting login with email:', email);
 
       const response = await fetch('http://localhost:8000/login', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
         credentials: 'include',
       });
 
@@ -57,28 +61,32 @@ const AuthPage = () => {
 
       if (response.ok) {
         setAuth({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
-        role: data.role,
-      });
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+          role: data.role,  // 'C', 'R', or 'A'
+        });
         // Save user email to localStorage for Navbar display
         localStorage.setItem('dashhr_user_email', email);
-        
-        // Save user name (full_name for candidates, company_name for recruiters)
-        // Backend supplies this as "name" field based on role
-        if (data.name) {
-          if (data.role === 'C') {
-            localStorage.setItem('dashhr_full_name', data.name);
-          } else if (data.role === 'R') {
-            localStorage.setItem('dashhr_company_name', data.name);
-          }
-        }
+        localStorage.setItem('dashhr_onboarding_completed', data.onboarding_completed ? 'true' : 'false');
         
         setMessage('Logged in successfully!');
-        // Optionally redirect or update app state here
-        alert('Logged in successfully!');
-        // Redirect to dashboard or home page
-        window.location.href = '/dashboard';
+        
+        // Redirect based on onboarding status and role
+        if (!data.onboarding_completed) {
+          if (data.role === 'C') {
+            navigate('/onboarding/candidate');
+          } else if (data.role === 'R') {
+            navigate('/onboarding/employer');
+          }
+        } else {
+          if (data.role === 'C') {
+            navigate('/dashboard');
+          } else if (data.role === 'R') {
+            navigate('/employer');
+          } else {
+            navigate('/');
+          }
+        }
       } else {
         const errorMsg = data.detail || data.message || 'Login failed';
         setMessage(`Error: ${errorMsg}`);

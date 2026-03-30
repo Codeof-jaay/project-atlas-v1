@@ -52,7 +52,7 @@ export default function Hero() {
           className="text-5xl md:text-6xl lg:text-7xl font-bold text-text mb-6 leading-tight"
         >
           Smarter Hiring,{' '}
-          <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
+          <span className="text-accent">
             Faster Growth
           </span>
         </motion.h1>
@@ -73,9 +73,9 @@ export default function Hero() {
         >
           <Link
             to="/auth"
-            className="group relative px-8 py-4 bg-gradient-to-r from-primary to-primary/90 text-green-500 hover:text-blue-500 rounded-lg font-semibold overflow-hidden transition-all duration-300 hover:bg-accent hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2"
+            className=" relative px-8 py-4 bg-gradient-to-r from-primary to-primary/90 rounded-lg font-semibold overflow-hidden transition-all duration-300 hover:bg-accent hover:shadow-lg hover:shadow-primary/30 flex items-center gap-2"
           >
-            <span>Get Started Free</span>
+            <span className="text-primary hover:text-accent">Get Started Free</span>
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
 

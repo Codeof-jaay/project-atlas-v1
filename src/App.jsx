@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard'
 import Employer from './pages/Employer'
 import Applicants from './pages/Applicants'
 import AuthPage from './pages/AuthPage'
+import OnboardingCandidate from './pages/OnboardingCandidate'
+import OnboardingEmployer from './pages/OnboardingEmployer'
 import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import Profile from './pages/Profile'
@@ -51,6 +53,10 @@ export default function App() {
           {/* Auth Routes */}
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/:mode" element={<AuthPage />} />
+
+          {/* Onboarding Routes (Protected but no navbar) */}
+          <Route path="/onboarding/candidate" element={<OnboardingCandidate />} />
+          <Route path="/onboarding/employer" element={<OnboardingEmployer />} />
 
           {/* Public Routes */}
           <Route path="/" element={<Landing />} />

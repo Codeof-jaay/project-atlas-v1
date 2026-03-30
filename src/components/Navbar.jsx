@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LogOut, User } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   getAuth, 
   clearAuth, 
@@ -19,6 +20,7 @@ export default function Navbar() {
   const [displayName, setDisplayName] = useState('')
   const [role, setRole] = useState(null)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const menuRef = useRef(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -51,6 +53,23 @@ export default function Navbar() {
     }
   }, [])
 
+  // Handle outside click to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowProfileMenu(false)
+      }
+    }
+
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showProfileMenu])
+
   const handleLogout = () => {
     clearAuth()
     setAuthenticated(false)
@@ -75,16 +94,16 @@ export default function Navbar() {
           {authenticated && (
             <>
               <Link to="/jobs" className="text-sm text-primary hover:text-primary transition">Jobs</Link>
-              {role === 'C' && <Link to="/dashboard" className="text-sm text-primary hover:text-primary transition">Dashboard</Link>}
-              {role === 'R' && <Link to="/employer" className="text-sm text-primary hover:text-primary transition">Employer</Link>}
-              {role === 'A' && <Link to="/admin" className="text-sm text-primary hover:text-primary transition">Admin</Link>}
+              {role === 'candidate' && <Link to="/dashboard" className="text-sm text-primary hover:text-primary transition">Dashboard</Link>}
+              {role === 'employer' && <Link to="/employer" className="text-sm text-primary hover:text-primary transition">Employer</Link>}
+              {role === 'admin' && <Link to="/admin" className="text-sm text-primary hover:text-primary transition">Admin</Link>}
             </>
           )}
 
 
           {/* Profile Section - Visible when authenticated */}
           {authenticated && (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/10 transition"
@@ -97,33 +116,41 @@ export default function Navbar() {
               </button>
 
               {/* Profile Dropdown Menu */}
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-48 card rounded-lg shadow-lg z-50">
-                  <Link 
-                    to="/profile"
-                    className="block p-4 border-b border-light hover:bg-primary/5 transition"
-                    onClick={() => setShowProfileMenu(false)}
+              <AnimatePresence>
+                {showProfileMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="absolute right-0 mt-2 w-48 card rounded-lg shadow-lg z-50 overflow-hidden"
                   >
-                    <p className="text-sm font-semibold text-primary">{displayName}</p>
-                    <p className="text-xs text-muted">{email}</p>
-                  </Link>
-                  {/* Theme Toggle */}
-                  <button 
-                    onClick={() => setDark((d) => !d)} 
-                    className="w-full px-4 py-2 rounded text-sm text-left hover:bg-primary/10 transition"
-                  >
-                    {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
-                  </button>
-                  {/*logout */}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50/20 flex items-center gap-2 transition border-t border-light"
-                  >
-                    <LogOut size={16} />
-                    Logout
-                  </button>
-                </div>
-              )}
+                    <Link 
+                      to="/profile"
+                      className="block p-4 border-b border-light hover:bg-primary/5 transition"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      <p className="text-sm font-semibold text-primary">{displayName}</p>
+                      <p className="text-xs text-muted">{email}</p>
+                    </Link>
+                    {/* Theme Toggle */}
+                    <button 
+                      onClick={() => setDark((d) => !d)} 
+                      className="w-full px-4 py-2 rounded text-sm text-left hover:bg-primary/10 transition"
+                    >
+                      {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+                    </button>
+                    {/*logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50/20 flex items-center gap-2 transition border-t border-light"
+                    >
+                      <LogOut size={16} />
+                      Logout
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </div>

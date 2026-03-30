@@ -73,7 +73,7 @@ export const isAuthenticated = () => {
 
 /**
  * Get user's role
- * @returns {String|null} 'C' (Candidate), 'R' (Recruiter), 'A' (Admin), or null
+ * @returns {String|null} 'C' (candidate), 'R' (employer), 'A' (admin), or null
  */
 export const getRole = () => {
   const { role } = getAuth();
@@ -82,12 +82,26 @@ export const getRole = () => {
 
 /**
  * Check if user has a specific role
- * @param {String} roleToCheck - Role to check against
+ * @param {String} roleToCheck - Role to check against ('C', 'R', or 'A')
  * @returns {Boolean} True if user's role matches
  */
 export const hasRole = (roleToCheck) => {
   const role = getRole();
   return role === roleToCheck;
+};
+
+/**
+ * Get human-readable role name
+ * @returns {String} 'Candidate', 'Employer', 'Admin', or 'Unknown'
+ */
+export const getRoleDisplayName = () => {
+  const role = getRole();
+  const roleMap = {
+    'C': 'Candidate',
+    'R': 'Employer',
+    'A': 'Admin'
+  };
+  return roleMap[role] || 'Unknown';
 };
 
 // ============================================================================
@@ -121,9 +135,9 @@ export const setUserEmail = (email) => {
 export const getUserDisplayName = () => {
   const role = getRole();
   
-  if (role === 'A') return 'Admin';
-  if (role === 'R') return localStorage.getItem('dashhr_company_name') || 'Company';
-  if (role === 'C') return localStorage.getItem('dashhr_full_name') || 'Candidate';
+  if (role === 'admin') return 'Admin';
+  if (role === 'employer') return localStorage.getItem('dashhr_company_name') || 'Company';
+  if (role === 'candidate') return localStorage.getItem('dashhr_full_name') || 'Candidate';
   
   return 'User';
 };
@@ -220,19 +234,19 @@ export const setTheme = (theme) => {
  * Check if current user is a Candidate
  * @returns {Boolean}
  */
-export const isCandidate = () => hasRole('C');
+export const isCandidate = () => hasRole('candidate');
 
 /**
  * Check if current user is a Recruiter/Employer
  * @returns {Boolean}
  */
-export const isRecruiter = () => hasRole('R');
+export const isRecruiter = () => hasRole('employer');
 
 /**
  * Check if current user is an Admin
  * @returns {Boolean}
  */
-export const isAdmin = () => hasRole('A');
+export const isAdmin = () => hasRole('admin');
 
 /**
  * Check if user has access to a specific route based on role
@@ -245,9 +259,9 @@ export const hasRouteAccess = (routeRole) => {
   
   // Define role access levels
   const accessMatrix = {
-    'C': ['C'], // Candidate can only access C routes
-    'R': ['R'], // Recruiter can only access R routes
-    'A': ['A', 'R', 'C'], // Admin can access all
+    'candidate': ['candidate'], // Candidate can only access candidate routes
+    'employer': ['employer'], // Employer can only access employer routes
+    'admin': ['admin', 'employer', 'candidate'], // Admin can access all
   };
   
   return accessMatrix[userRole]?.includes(routeRole) || false;
