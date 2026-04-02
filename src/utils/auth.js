@@ -1,39 +1,30 @@
 /**
  * Consolidated Auth Utility Module
  * Manages authentication state, tokens, user info, and role-based access
- * 
- * Storage Keys:
- * - dashhr_auth: Main auth object (access_token, refresh_token, role)
- * - dashhr_user_email: User's email
- * - dashhr_full_name: Candidate's full name
- * - dashhr_company_name: Employer's company name
- * - dashhr_joined_at: Account creation date
- * - dashhr_theme: Light/dark theme preference
  */
+
+// Define standard role codes matching the backend
+export const ROLES = {
+  CANDIDATE: 'C',
+  EMPLOYER: 'R', // Recruiter
+  ADMIN: 'A'
+};
 
 // ============================================================================
 // Core Auth Functions
 // ============================================================================
 
-/**
- * Get authentication data from localStorage
- * @returns {Object} Auth object with access_token, refresh_token, role
- */
 export const getAuth = () => {
   try {
-    const auth = localStorage.getItem('dashhr_auth');
-    if (!auth) return { access_token: null, refresh_token: null, role: null };
-    return JSON.parse(auth);
+    const authString = localStorage.getItem('dashhr_auth');
+    if (!authString) return { access_token: null, refresh_token: null, role: null };
+    return JSON.parse(authString);
   } catch (error) {
     console.error('Failed to parse auth from localStorage:', error);
     return { access_token: null, refresh_token: null, role: null };
   }
 };
 
-/**
- * Set authentication data in localStorage
- * @param {Object} authData - Object with access_token, refresh_token, role
- */
 export const setAuth = (authData) => {
   try {
     localStorage.setItem('dashhr_auth', JSON.stringify(authData));
@@ -42,17 +33,30 @@ export const setAuth = (authData) => {
   }
 };
 
-/**
- * Clear all authentication and theme data from localStorage
- */
 export const clearAuth = () => {
   try {
+    // Core Auth
     localStorage.removeItem('dashhr_auth');
     localStorage.removeItem('dashhr_user_email');
+    localStorage.removeItem('dashhr_onboarding_completed');
+    
+    // User Identity
     localStorage.removeItem('dashhr_full_name');
     localStorage.removeItem('dashhr_company_name');
     localStorage.removeItem('dashhr_joined_at');
-    localStorage.removeItem('dashhr_theme');
+    
+    // Employer Specific
+    localStorage.removeItem('dashhr_company_size');
+    localStorage.removeItem('dashhr_company_industry');
+    localStorage.removeItem('dashhr_company_description');
+    
+    // Candidate Specific
+    localStorage.removeItem('dashhr_candidate_skills');
+    localStorage.removeItem('dashhr_candidate_experience');
+    localStorage.removeItem('dashhr_candidate_education');
+    localStorage.removeItem('dashhr_candidate_bio');
+
+    // Note: Intentionally leaving 'dashhr_theme' so their dark mode preference persists
   } catch (error) {
     console.error('Failed to clear auth from localStorage:', error);
   }
@@ -62,44 +66,26 @@ export const clearAuth = () => {
 // Authentication Status & Role Functions
 // ============================================================================
 
-/**
- * Check if user is authenticated
- * @returns {Boolean} True if valid access token exists
- */
 export const isAuthenticated = () => {
   const { access_token } = getAuth();
   return !!access_token;
 };
 
-/**
- * Get user's role
- * @returns {String|null} 'C' (candidate), 'R' (employer), 'A' (admin), or null
- */
 export const getRole = () => {
   const { role } = getAuth();
   return role;
 };
 
-/**
- * Check if user has a specific role
- * @param {String} roleToCheck - Role to check against ('C', 'R', or 'A')
- * @returns {Boolean} True if user's role matches
- */
 export const hasRole = (roleToCheck) => {
-  const role = getRole();
-  return role === roleToCheck;
+  return getRole() === roleToCheck;
 };
 
-/**
- * Get human-readable role name
- * @returns {String} 'Candidate', 'Employer', 'Admin', or 'Unknown'
- */
 export const getRoleDisplayName = () => {
   const role = getRole();
   const roleMap = {
-    'C': 'Candidate',
-    'R': 'Employer',
-    'A': 'Admin'
+    [ROLES.CANDIDATE]: 'Candidate',
+    [ROLES.EMPLOYER]: 'Employer',
+    [ROLES.ADMIN]: 'Administrator'
   };
   return roleMap[role] || 'Unknown';
 };
@@ -108,18 +94,10 @@ export const getRoleDisplayName = () => {
 // User Info Functions
 // ============================================================================
 
-/**
- * Get user's email
- * @returns {String|null} User's email or null
- */
 export const getUserEmail = () => {
   return localStorage.getItem('dashhr_user_email') || null;
 };
 
-/**
- * Set user's email
- * @param {String} email - User's email address
- */
 export const setUserEmail = (email) => {
   try {
     localStorage.setItem('dashhr_user_email', email);
@@ -128,32 +106,18 @@ export const setUserEmail = (email) => {
   }
 };
 
-/**
- * Get user's display name based on role
- * @returns {String} Candidate name, Company name, 'Admin', or 'User'
- */
 export const getUserDisplayName = () => {
   const role = getRole();
   
-  if (role === 'admin') return 'Admin';
-  if (role === 'employer') return localStorage.getItem('dashhr_company_name') || 'Company';
-  if (role === 'candidate') return localStorage.getItem('dashhr_full_name') || 'Candidate';
+  if (role === ROLES.ADMIN) return 'Administrator';
+  if (role === ROLES.EMPLOYER) return localStorage.getItem('dashhr_company_name') || 'Company Profile';
+  if (role === ROLES.CANDIDATE) return localStorage.getItem('dashhr_full_name') || 'Candidate Profile';
   
   return 'User';
 };
 
-/**
- * Get candidate's full name
- * @returns {String|null} Full name or null
- */
-export const getCandidateName = () => {
-  return localStorage.getItem('dashhr_full_name') || null;
-};
+export const getCandidateName = () => localStorage.getItem('dashhr_full_name') || null;
 
-/**
- * Set candidate's full name
- * @param {String} name - Candidate's full name
- */
 export const setCandidateName = (name) => {
   try {
     localStorage.setItem('dashhr_full_name', name);
@@ -162,18 +126,8 @@ export const setCandidateName = (name) => {
   }
 };
 
-/**
- * Get employer's company name
- * @returns {String|null} Company name or null
- */
-export const getCompanyName = () => {
-  return localStorage.getItem('dashhr_company_name') || null;
-};
+export const getCompanyName = () => localStorage.getItem('dashhr_company_name') || null;
 
-/**
- * Set employer's company name
- * @param {String} name - Company name
- */
 export const setCompanyName = (name) => {
   try {
     localStorage.setItem('dashhr_company_name', name);
@@ -182,18 +136,10 @@ export const setCompanyName = (name) => {
   }
 };
 
-/**
- * Get account join date
- * @returns {String} Join date or current date
- */
 export const getJoinedDate = () => {
   return localStorage.getItem('dashhr_joined_at') || new Date().toLocaleDateString();
 };
 
-/**
- * Set account join date
- * @param {String} date - Join date
- */
 export const setJoinedDate = (date) => {
   try {
     localStorage.setItem('dashhr_joined_at', date);
@@ -206,18 +152,8 @@ export const setJoinedDate = (date) => {
 // Theme Functions
 // ============================================================================
 
-/**
- * Get current theme preference
- * @returns {String} 'light' or 'dark'
- */
-export const getTheme = () => {
-  return localStorage.getItem('dashhr_theme') || 'light';
-};
+export const getTheme = () => localStorage.getItem('dashhr_theme') || 'light';
 
-/**
- * Set theme preference
- * @param {String} theme - 'light' or 'dark'
- */
 export const setTheme = (theme) => {
   try {
     localStorage.setItem('dashhr_theme', theme);
@@ -230,38 +166,18 @@ export const setTheme = (theme) => {
 // Access Control Functions
 // ============================================================================
 
-/**
- * Check if current user is a Candidate
- * @returns {Boolean}
- */
-export const isCandidate = () => hasRole('candidate');
+export const isCandidate = () => hasRole(ROLES.CANDIDATE);
+export const isRecruiter = () => hasRole(ROLES.EMPLOYER);
+export const isAdmin = () => hasRole(ROLES.ADMIN);
 
-/**
- * Check if current user is a Recruiter/Employer
- * @returns {Boolean}
- */
-export const isRecruiter = () => hasRole('employer');
-
-/**
- * Check if current user is an Admin
- * @returns {Boolean}
- */
-export const isAdmin = () => hasRole('admin');
-
-/**
- * Check if user has access to a specific route based on role
- * @param {String} routeRole - Required role for the route
- * @returns {Boolean} True if user has access
- */
 export const hasRouteAccess = (routeRole) => {
   const userRole = getRole();
   if (!userRole) return false;
   
-  // Define role access levels
   const accessMatrix = {
-    'candidate': ['candidate'], // Candidate can only access candidate routes
-    'employer': ['employer'], // Employer can only access employer routes
-    'admin': ['admin', 'employer', 'candidate'], // Admin can access all
+    [ROLES.CANDIDATE]: [ROLES.CANDIDATE], 
+    [ROLES.EMPLOYER]: [ROLES.EMPLOYER], 
+    [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.EMPLOYER, ROLES.CANDIDATE], 
   };
   
   return accessMatrix[userRole]?.includes(routeRole) || false;
