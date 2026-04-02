@@ -116,8 +116,8 @@ export default function MyApplications() {
                 
                 return (
                   <motion.div 
-                    initial={{ opacity: 0, opacity: 0 }}
-                    animate={{ opacity: 1, opacity: 1 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     key={app.id}
                   >

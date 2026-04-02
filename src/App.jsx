@@ -18,7 +18,7 @@ import MyApplications from './pages/MyApplications';
 // Components & Utils
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
-import { getAuth, ROLES } from './utils/auth';
+import { getAuth, ROLES, isAuthenticated, getRole } from './utils/auth';
 
 // A simple layout wrapper that conditionally hides the Navbar
 const Layout = ({ children }) => {
@@ -34,6 +34,33 @@ const Layout = ({ children }) => {
       </main>
     </div>
   );
+};
+
+// Route Guard Component: Protects public pages from logged-in users
+const PublicOnlyRoute = ({ children }) => {
+  const isAuth = isAuthenticated();
+  const userRole = getRole();
+  
+  if (isAuth) {
+    // Redirect logged-in users to their respective dashboards
+    const defaultRoute = userRole === 'C' ? '/dashboard' : userRole === 'R' ? '/employer' : '/';
+    return <Navigate to={defaultRoute} replace />;
+  }
+  
+  return children;
+};
+
+// Route Guard for Jobs page: Employers cannot access job listings
+const JobsAccessRoute = ({ children }) => {
+  const isAuth = isAuthenticated();
+  const userRole = getRole();
+  
+  // If logged in and employer, redirect to their employer portal
+  if (isAuth && userRole === 'R') {
+    return <Navigate to="/employer" replace />;
+  }
+  
+  return children;
 };
 
 export default function App() {
@@ -56,10 +83,12 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/jobs" element={<Jobs />} />
+        {/* Public Routes - Blocked for logged-in users */}
+        <Route path="/" element={<PublicOnlyRoute><Landing /></PublicOnlyRoute>} />
+        <Route path="/auth" element={<PublicOnlyRoute><AuthPage /></PublicOnlyRoute>} />
+        
+        {/* Job Listings - Blocked for employers */}
+        <Route path="/jobs" element={<JobsAccessRoute><Jobs /></JobsAccessRoute>} />
         <Route path="/jobs/:id" element={<JobDetails />} />
 
         {/* Semi-Protected: Requires Auth, but specific to onboarding flow */}
@@ -71,8 +100,7 @@ export default function App() {
           <Route path="/onboarding/employer" element={<OnboardingEmployer />} />
         </Route>
 
-        {/* Protected Routes: Require Auth + Specific Role + Completed Onboarding 
-        */}
+        {/* Protected Routes: Require Auth + Specific Role + Completed Onboarding */}
         
         {/* Candidate Only Routes */}
         <Route element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE]} requireOnboarding={true} />}>
