@@ -14,7 +14,7 @@ import {
   Loader
 } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
 export default function Dashboard() {
   const navigate = useNavigate();

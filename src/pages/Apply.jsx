@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { UploadCloud, CheckCircle2, Building2, MapPin, ArrowLeft, AlertCircle } from 'lucide-react';
 import { getAuth } from '../utils/auth';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
 export default function Apply() {
   const { jobId } = useParams();
