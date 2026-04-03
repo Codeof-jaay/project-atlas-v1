@@ -1,7 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getApplications, getJobs } from '../utils/store';
-import { getRole } from '../utils/auth';
+import { getRole, getAuth } from '../utils/auth';
 import { motion } from 'framer-motion';
 import { 
   Briefcase, 
@@ -11,13 +10,18 @@ import {
   CheckCircle2, 
   XCircle, 
   ArrowRight,
-  Clock
+  Clock,
+  Loader
 } from 'lucide-react';
+
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const apps = getApplications();
-  const jobs = getJobs();
+  const [applications, setApplications] = useState([]);
+  const [jobs, setJobs] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Restrict Dashboard to Candidates only
   useEffect(() => {
@@ -27,38 +31,98 @@ export default function Dashboard() {
     }
   }, [navigate]);
 
-  // WhatsApp-Style Transparency Logic
+  // Fetch candidate's applications and associated jobs
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const { access_token } = getAuth();
+        if (!access_token) {
+          navigate('/auth');
+          return;
+        }
+
+        // Fetch user's applications
+        const appsResponse = await fetch(`${API_BASE_URL}/my-applications`, {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!appsResponse.ok) {
+          throw new Error(`Failed to fetch applications: ${appsResponse.status}`);
+        }
+
+        const appsData = await appsResponse.json();
+        setApplications(appsData || []);
+
+        // Fetch jobs for those applications
+        if (appsData && appsData.length > 0) {
+          const jobsMap = {};
+          for (const app of appsData) {
+            if (app.job_id && !jobsMap[app.job_id]) {
+              const jobResponse = await fetch(`${API_BASE_URL}/jobs/${app.job_id}`, {
+                headers: {
+                  'Authorization': `Bearer ${access_token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              
+              if (jobResponse.ok) {
+                const jobData = await jobResponse.json();
+                jobsMap[app.job_id] = jobData;
+              }
+            }
+          }
+          setJobs(jobsMap);
+        }
+      } catch (err) {
+        console.error('Error fetching applications:', err);
+        setError(err.message || 'Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, [navigate]);
+
+
+  // WhatsApp-Style Transparency Logic - Maps backend status to UI
   const getStatusUI = (status) => {
     switch (status) {
-      case 'Applied':
+      case 'applied':
         return { 
           icon: <Check size={18} className="text-slate-400" />, 
           text: 'Application Sent', 
           color: 'text-slate-500 dark:text-slate-400',
           bg: 'bg-slate-100 dark:bg-white/5'
         };
-      case 'Screened':
+      case 'reviewed':
         return { 
           icon: <CheckCheck size={18} className="text-blue-500" />, 
           text: 'CV Viewed & Downloaded', 
           color: 'text-blue-600 dark:text-blue-400',
           bg: 'bg-blue-50 dark:bg-blue-500/10'
         };
-      case 'Interview':
+      case 'shortlisted':
         return { 
           icon: <Calendar size={18} className="text-purple-500" />, 
           text: 'Interview Requested', 
           color: 'text-purple-600 dark:text-purple-400',
           bg: 'bg-purple-50 dark:bg-purple-500/10'
         };
-      case 'Hired':
+      case 'accepted':
         return { 
           icon: <CheckCircle2 size={18} className="text-emerald-500" />, 
           text: 'Offer Extended', 
           color: 'text-emerald-600 dark:text-emerald-400',
           bg: 'bg-emerald-50 dark:bg-emerald-500/10'
         };
-      case 'Rejected':
+      case 'rejected':
         return { 
           icon: <XCircle size={18} className="text-red-500" />, 
           text: 'Not Selected', 
@@ -88,7 +152,34 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {apps.length === 0 ? (
+        {loading && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-[#12141C] border border-gray-200 dark:border-white/10 rounded-3xl p-12 text-center shadow-sm flex flex-col items-center gap-4"
+          >
+            <Loader size={32} className="text-blue-600 dark:text-blue-400 animate-spin" />
+            <p className="text-slate-600 dark:text-slate-400">Loading your applications...</p>
+          </motion.div>
+        )}
+
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-3xl p-12 text-center shadow-sm"
+          >
+            <p className="text-red-600 dark:text-red-400 font-semibold mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-semibold transition-colors"
+            >
+              Try Again
+            </button>
+          </motion.div>
+        )}
+
+        {!loading && !error && applications.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -109,54 +200,56 @@ export default function Dashboard() {
             </Link>
           </motion.div>
         ) : (
-          <div className="space-y-4">
-            {apps.map((a, index) => {
-              const job = jobs.find((j) => j.id === a.jobId);
-              const statusUI = getStatusUI(a.status);
-              
-              return (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                  key={a.id} 
-                  className="group bg-white dark:bg-[#1A1D27]/80 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    
-                    {/* Job Details */}
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
-                        {job?.title || 'Unknown Role'}
-                      </h3>
-                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                        <Briefcase size={14} />
-                        {job?.company || 'Unknown Company'}
-                      </p>
-                    </div>
-
-                    {/* WhatsApp-Style Tracker */}
-                    <div className="flex items-center sm:justify-end">
-                      <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl ${statusUI.bg} border border-white/10 shadow-sm`}>
-                        {statusUI.icon}
-                        <span className={`text-sm font-bold tracking-wide ${statusUI.color}`}>
-                          {statusUI.text}
-                        </span>
+          !loading && !error && (
+            <div className="space-y-4">
+              {applications.map((app, index) => {
+                const job = jobs[app.job_id];
+                const statusUI = getStatusUI(app.status);
+                
+                return (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    key={app.id} 
+                    className="group bg-white dark:bg-[#1A1D27]/80 backdrop-blur-xl border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      
+                      {/* Job Details */}
+                      <div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
+                          {job?.title || 'Loading...'}
+                        </h3>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Briefcase size={14} />
+                          {job?.company_name || 'Unknown Company'}
+                        </p>
                       </div>
-                    </div>
-                    
-                  </div>
 
-                  {/* Optional: Action / View Details link could go here */}
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-end">
-                    <Link to={`/jobs/${a.jobId}`} className="text-xs font-semibold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      View Job Details &rarr;
-                    </Link>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+                      {/* WhatsApp-Style Tracker */}
+                      <div className="flex items-center sm:justify-end">
+                        <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl ${statusUI.bg} border border-white/10 shadow-sm`}>
+                          {statusUI.icon}
+                          <span className={`text-sm font-bold tracking-wide ${statusUI.color}`}>
+                            {statusUI.text}
+                          </span>
+                        </div>
+                      </div>
+                      
+                    </div>
+
+                    {/* Optional: Action / View Details link could go here */}
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/5 flex justify-end">
+                      <Link to={`/jobs/${app.job_id}`} className="text-xs font-semibold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        View Job Details &rarr;
+                      </Link>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
     </div>

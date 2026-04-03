@@ -1,19 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getJobById } from '../utils/store';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Building2, MapPin, ShieldCheck, CheckCircle2, Clock, Zap } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, ShieldCheck, CheckCircle2, Clock, Zap, AlertCircle } from 'lucide-react';
 
 export default function JobDetails() {
   const { id } = useParams();
-  const job = id ? getJobById(id) : null;
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  if (!job) {
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/v1/jobs/${id}`);
+        if (!response.ok) {
+          throw new Error('Job not found');
+        }
+        const data = await response.json();
+        setJob(data);
+        setError('');
+      } catch (err) {
+        setError(err.message || 'Failed to load job details');
+        setJob(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchJob();
+    }
+  }, [id]);
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 bg-gray-50 dark:bg-[#0A0C10]">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0A0C10] pt-24">
         <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-500/30 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading job details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0A0C10] pt-24">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-red-600 dark:text-red-400" size={32} />
+          </div>
           <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Job not found</h2>
-          <Link to="/jobs" className="text-blue-600 hover:underline">Return to jobs</Link>
+          <p className="text-slate-600 dark:text-slate-400 mb-6">{error || 'This job listing may have been removed.'}</p>
+          <Link to="/jobs" className="inline-block text-blue-600 hover:text-blue-500 font-semibold">Return to jobs</Link>
         </div>
       </div>
     );
@@ -41,7 +80,7 @@ export default function JobDetails() {
             <div className="relative z-10">
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider rounded-lg">
-                  {job.type || 'Full-Time'}
+                  {job.job_type || 'Full-Time'}
                 </span>
                 <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-bold uppercase tracking-wider rounded-lg">
                   <ShieldCheck size={14} /> Verified Employer
@@ -55,7 +94,7 @@ export default function JobDetails() {
               <div className="flex flex-wrap gap-4 md:gap-6 text-sm font-medium text-slate-600 dark:text-slate-400">
                 <div className="flex items-center gap-2">
                   <Building2 size={18} className="text-slate-400" />
-                  {job.company}
+                  {job.company_name}
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin size={18} className="text-slate-400" />
@@ -91,14 +130,14 @@ export default function JobDetails() {
                 <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                   <CheckCircle2 size={16} />
                 </div>
-                Requirements
+                Required Skills
               </h3>
               <ul className="space-y-3">
-                {job.requirements && job.requirements.length > 0 ? (
-                  job.requirements.map((r, idx) => (
+                {job.required_skills && job.required_skills.length > 0 ? (
+                  job.required_skills.map((skill, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-slate-600 dark:text-slate-400">
                       <CheckCircle2 size={18} className="text-blue-500 shrink-0 mt-0.5" />
-                      <span className="leading-relaxed">{r}</span>
+                      <span className="leading-relaxed">{skill}</span>
                     </li>
                   ))
                 ) : (

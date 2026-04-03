@@ -74,6 +74,9 @@ class User(SQLModel, table=True):
     # Relationships (New comprehensive profiles)
     individual_profile: Optional["IndividualProfile"] = Relationship(back_populates="user")
     organization_profile_new: Optional["OrganizationProfile"] = Relationship(back_populates="user")
+    
+    # Job postings (for employers)
+    job_postings: List["JobPosting"] = Relationship(back_populates="employer")
 
 
 class CandidateProfile(SQLModel, table=True):
@@ -217,8 +220,69 @@ class OrganizationProfile(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_updated_by: Optional[int] = None
     
-    # Relationship
+    # Relationships
     user: Optional[User] = Relationship(back_populates="organization_profile_new")
+
+
+class JobPosting(SQLModel, table=True):
+    """Job posting created by employers."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employer_id: int = Field(foreign_key="user.id", index=True)
+    
+    # Job Info
+    title: str = Field(min_length=3, max_length=150)
+    description: str = Field(min_length=20, max_length=5000)
+    company_name: str = Field(max_length=150)
+    
+    # Job Details
+    location: str = Field(max_length=200)
+    job_type: str = Field(default="Full-time")  # Full-time, Part-time, Contract, Temporary
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    currency: str = Field(default="USD")
+    
+    # Requirements
+    required_skills: str = Field(default="[]")  # JSON array
+    experience_level: str = Field(default="Mid-level")  # Entry-level, Mid-level, Senior
+    years_of_experience: Optional[int] = None
+    education_requirement: Optional[str] = None
+    
+    # Additional Info
+    benefits: str = Field(default="[]")  # JSON array
+    remote_option: bool = Field(default=False)
+    
+    # Status
+    is_active: bool = Field(default=True)
+    applications_count: int = Field(default=0)
+    
+    # Metadata
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    deadline: Optional[datetime] = None
+    
+    # Relationships
+    employer: Optional[User] = Relationship(back_populates="job_postings")
+    applications: List["JobApplication"] = Relationship(back_populates="job")
+
+
+class JobApplication(SQLModel, table=True):
+    """Job application submitted by candidates."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    job_id: int = Field(foreign_key="jobposting.id", index=True)
+    candidate_id: int = Field(foreign_key="user.id", index=True)
+    
+    # Application Info
+    status: str = Field(default="applied")  # applied, reviewed, shortlisted, rejected, accepted
+    cover_letter: Optional[str] = Field(default=None, max_length=2000)
+    resume_url: Optional[str] = None
+    
+    # Metadata
+    applied_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Relationships
+    job: Optional[JobPosting] = Relationship(back_populates="applications")
+    candidate: Optional[User] = Relationship()
 
 
 class RegisterRequest(BaseModel):
@@ -360,6 +424,94 @@ class ProfileCompletionResponse(BaseModel):
     percentage: int
     completed_sections: List[str]
     next_sections: Optional[List[str]] = None
+
+
+# ===== JOB POSTING SCHEMAS =====
+
+class JobPostingCreateRequest(BaseModel):
+    """Request model for creating a job posting."""
+    title: str = Field(min_length=3, max_length=150)
+    description: str = Field(min_length=20, max_length=5000)
+    company_name: str = Field(max_length=150)
+    location: str = Field(max_length=200)
+    job_type: str = Field(default="Full-time")
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    currency: str = Field(default="USD")
+    required_skills: Optional[List[str]] = None
+    experience_level: str = Field(default="Mid-level")
+    years_of_experience: Optional[int] = None
+    education_requirement: Optional[str] = None
+    benefits: Optional[List[str]] = None
+    remote_option: bool = Field(default=False)
+    deadline: Optional[datetime] = None
+
+
+class JobPostingUpdateRequest(BaseModel):
+    """Request model for updating a job posting."""
+    title: Optional[str] = Field(None, min_length=3, max_length=150)
+    description: Optional[str] = Field(None, min_length=20, max_length=5000)
+    location: Optional[str] = Field(None, max_length=200)
+    job_type: Optional[str] = None
+    salary_min: Optional[int] = None
+    salary_max: Optional[int] = None
+    currency: Optional[str] = None
+    required_skills: Optional[List[str]] = None
+    experience_level: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    education_requirement: Optional[str] = None
+    benefits: Optional[List[str]] = None
+    remote_option: Optional[bool] = None
+    deadline: Optional[datetime] = None
+    is_active: Optional[bool] = None
+
+
+class StatusUpdateRequest(BaseModel):
+    """Request model for updating application status."""
+    status: str = Field(min_length=1)
+
+
+class JobPostingResponse(BaseModel):
+    """Response model for job posting."""
+    id: int
+    employer_id: int
+    title: str
+    description: str
+    company_name: str
+    location: str
+    job_type: str
+    salary_min: Optional[int]
+    salary_max: Optional[int]
+    currency: str
+    required_skills: List[str]
+    experience_level: str
+    years_of_experience: Optional[int]
+    education_requirement: Optional[str]
+    benefits: List[str]
+    remote_option: bool
+    is_active: bool
+    applications_count: int
+    created_at: datetime
+    updated_at: datetime
+    deadline: Optional[datetime]
+
+
+class JobApplicationRequest(BaseModel):
+    """Request model for job application."""
+    cover_letter: Optional[str] = Field(None, max_length=2000)
+    resume_url: Optional[str] = None
+
+
+class JobApplicationResponse(BaseModel):
+    """Response model for job application."""
+    id: int
+    job_id: int
+    candidate_id: int
+    status: str
+    cover_letter: Optional[str]
+    resume_url: Optional[str]
+    applied_at: datetime
+    updated_at: datetime
 
 # ===== Authentication Config =====
 SECRET_KEY = os.environ.get("SECRET_KEY", "your-super-secret-key")  # Use env var in production
@@ -707,22 +859,8 @@ class ComprehensiveProfileService:
         ).first()
 
 # ===== Mock Database =====
-jobs = [
-    {
-        "id": "1",
-        "title": "Frontend Developer",
-        "company": "DashHR",
-        "location": "Lagos",
-        "description": "Build modern UIs"
-    },
-    {
-        "id": "2",
-        "title": "Backend Engineer",
-        "company": "DashHR",
-        "location": "Remote",
-        "description": "Build APIs with FastAPI"
-    }
-]
+# Jobs are now created by actual employers through API
+# Mock database cleared - all jobs are database-driven now
 
 applications = []
 
@@ -857,6 +995,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
         raise credentials_exception
 
 # ===== PHASE 2: COMPREHENSIVE PROFILE ENDPOINTS =====
+
+# ===== CURRENT USER ENDPOINT =====
+
+@app.get("/api/v1/me")
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
+):
+    """Get current logged-in user's information."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "role": current_user.role,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at
+    }
 
 # ===== INDIVIDUAL PROFILE ENDPOINTS =====
 
@@ -1361,58 +1514,543 @@ async def onboard_employer(
 def root():
     return {"message": "DashHR API running"}
 
-# Get all jobs
-@app.get("/jobs")
-def get_jobs():
-    return jobs
+# ===== JOB POSTING ENDPOINTS =====
 
-# Get single job
-@app.get("/jobs/{job_id}")
-def get_job(job_id: str):
-    for job in jobs:
-        if job["id"] == job_id:
-            return job
-    return {"error": "Job not found"}
-
-# Apply to job
-@app.post("/apply/{job_id}")
-async def apply(
-    job_id: str,
-    name: str = Form(...),
-    email: str = Form(...),
-    phone: str = Form(...),
-    cv: UploadFile = File(...)
+@app.post("/api/v1/jobs")
+async def create_job_posting(
+    data: JobPostingCreateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
 ):
-    application_id = str(uuid.uuid4())
+    """Create a new job posting (Employer only)."""
+    if current_user.role != "R":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only employers can create job postings"
+        )
+    
+    try:
+        job = JobPosting(
+            employer_id=current_user.id,
+            title=data.title,
+            description=data.description,
+            company_name=data.company_name,
+            location=data.location,
+            job_type=data.job_type,
+            salary_min=data.salary_min,
+            salary_max=data.salary_max,
+            currency=data.currency,
+            required_skills=json.dumps(data.required_skills or []),
+            experience_level=data.experience_level,
+            years_of_experience=data.years_of_experience,
+            education_requirement=data.education_requirement,
+            benefits=json.dumps(data.benefits or []),
+            remote_option=data.remote_option,
+            deadline=data.deadline,
+            is_active=True
+        )
+        session.add(job)
+        session.commit()
+        session.refresh(job)
+        
+        return JobPostingResponse(
+            id=job.id,
+            employer_id=job.employer_id,
+            title=job.title,
+            description=job.description,
+            company_name=job.company_name,
+            location=job.location,
+            job_type=job.job_type,
+            salary_min=job.salary_min,
+            salary_max=job.salary_max,
+            currency=job.currency,
+            required_skills=json.loads(job.required_skills),
+            experience_level=job.experience_level,
+            years_of_experience=job.years_of_experience,
+            education_requirement=job.education_requirement,
+            benefits=json.loads(job.benefits),
+            remote_option=job.remote_option,
+            is_active=job.is_active,
+            applications_count=job.applications_count,
+            created_at=job.created_at,
+            updated_at=job.updated_at,
+            deadline=job.deadline
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-    application = {
-        "id": application_id,
-        "job_id": job_id,
-        "name": name,
-        "email": email,
-        "phone": phone,
-        "cv_filename": cv.filename,
-        "status": "Applied"
-    }
 
-    applications.append(application)
+@app.get("/api/v1/jobs")
+async def get_all_jobs(
+    skip: int = 0,
+    limit: int = 20,
+    session: Session = Depends(get_session)
+):
+    """Get all active job postings (public endpoint)."""
+    try:
+        jobs = session.exec(
+            select(JobPosting)
+            .where(JobPosting.is_active == True)
+            .offset(skip)
+            .limit(limit)
+        ).all()
+        
+        return [
+            JobPostingResponse(
+                id=job.id,
+                employer_id=job.employer_id,
+                title=job.title,
+                description=job.description,
+                company_name=job.company_name,
+                location=job.location,
+                job_type=job.job_type,
+                salary_min=job.salary_min,
+                salary_max=job.salary_max,
+                currency=job.currency,
+                required_skills=json.loads(job.required_skills),
+                experience_level=job.experience_level,
+                years_of_experience=job.years_of_experience,
+                education_requirement=job.education_requirement,
+                benefits=json.loads(job.benefits),
+                remote_option=job.remote_option,
+                is_active=job.is_active,
+                applications_count=job.applications_count,
+                created_at=job.created_at,
+                updated_at=job.updated_at,
+                deadline=job.deadline
+            )
+            for job in jobs
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-    return {"message": "Application submitted", "application": application}
 
-# Get all applications (candidate view)
-@app.get("/applications")
-def get_applications():
-    return applications
+@app.get("/api/v1/jobs/{job_id}")
+async def get_job_by_id(
+    job_id: int,
+    session: Session = Depends(get_session)
+):
+    """Get a specific job posting."""
+    try:
+        job = session.get(JobPosting, job_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job posting not found"
+            )
+        
+        return JobPostingResponse(
+            id=job.id,
+            employer_id=job.employer_id,
+            title=job.title,
+            description=job.description,
+            company_name=job.company_name,
+            location=job.location,
+            job_type=job.job_type,
+            salary_min=job.salary_min,
+            salary_max=job.salary_max,
+            currency=job.currency,
+            required_skills=json.loads(job.required_skills),
+            experience_level=job.experience_level,
+            years_of_experience=job.years_of_experience,
+            education_requirement=job.education_requirement,
+            benefits=json.loads(job.benefits),
+            remote_option=job.remote_option,
+            is_active=job.is_active,
+            applications_count=job.applications_count,
+            created_at=job.created_at,
+            updated_at=job.updated_at,
+            deadline=job.deadline
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-# Update application status (ATS)
-@app.put("/applications/{app_id}")
-def update_status(app_id: str, status: str):
-    for app_item in applications:
-        if app_item["id"] == app_id:
-            app_item["status"] = status
-            return {"message": "Updated", "application": app_item}
 
-    return {"error": "Application not found"}
+@app.put("/api/v1/jobs/{job_id}")
+async def update_job_posting(
+    job_id: int,
+    data: JobPostingUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Update a job posting (Employer only)."""
+    try:
+        job = session.get(JobPosting, job_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job posting not found"
+            )
+        
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit your own job postings"
+            )
+        
+        # Update fields
+        update_data = data.dict(exclude_unset=True)
+        
+        if "required_skills" in update_data:
+            update_data["required_skills"] = json.dumps(update_data["required_skills"])
+        if "benefits" in update_data:
+            update_data["benefits"] = json.dumps(update_data["benefits"])
+        
+        for key, value in update_data.items():
+            setattr(job, key, value)
+        
+        job.updated_at = datetime.utcnow()
+        session.add(job)
+        session.commit()
+        session.refresh(job)
+        
+        return JobPostingResponse(
+            id=job.id,
+            employer_id=job.employer_id,
+            title=job.title,
+            description=job.description,
+            company_name=job.company_name,
+            location=job.location,
+            job_type=job.job_type,
+            salary_min=job.salary_min,
+            salary_max=job.salary_max,
+            currency=job.currency,
+            required_skills=json.loads(job.required_skills),
+            experience_level=job.experience_level,
+            years_of_experience=job.years_of_experience,
+            education_requirement=job.education_requirement,
+            benefits=json.loads(job.benefits),
+            remote_option=job.remote_option,
+            is_active=job.is_active,
+            applications_count=job.applications_count,
+            created_at=job.created_at,
+            updated_at=job.updated_at,
+            deadline=job.deadline
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.delete("/api/v1/jobs/{job_id}")
+async def delete_job_posting(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Delete/Archive a job posting (Employer only)."""
+    try:
+        job = session.get(JobPosting, job_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job posting not found"
+            )
+        
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own job postings"
+            )
+        
+        job.is_active = False
+        session.add(job)
+        session.commit()
+        
+        return {"message": "Job posting deactivated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.get("/api/v1/employers/{employer_id}/jobs")
+async def get_employer_jobs(
+    employer_id: int,
+    session: Session = Depends(get_session)
+):
+    """Get all job postings from a specific employer."""
+    try:
+        jobs = session.exec(
+            select(JobPosting)
+            .where((JobPosting.employer_id == employer_id) & (JobPosting.is_active == True))
+        ).all()
+        
+        return [
+            JobPostingResponse(
+                id=job.id,
+                employer_id=job.employer_id,
+                title=job.title,
+                description=job.description,
+                company_name=job.company_name,
+                location=job.location,
+                job_type=job.job_type,
+                salary_min=job.salary_min,
+                salary_max=job.salary_max,
+                currency=job.currency,
+                required_skills=json.loads(job.required_skills),
+                experience_level=job.experience_level,
+                years_of_experience=job.years_of_experience,
+                education_requirement=job.education_requirement,
+                benefits=json.loads(job.benefits),
+                remote_option=job.remote_option,
+                is_active=job.is_active,
+                applications_count=job.applications_count,
+                created_at=job.created_at,
+                updated_at=job.updated_at,
+                deadline=job.deadline
+            )
+            for job in jobs
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.post("/api/v1/jobs/{job_id}/apply")
+async def apply_to_job(
+    job_id: int,
+    data: JobApplicationRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Apply to a job posting (Candidate only)."""
+    if current_user.role != "C":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only candidates can apply to jobs"
+        )
+    
+    try:
+        job = session.get(JobPosting, job_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job posting not found"
+            )
+        
+        if not job.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This job posting is no longer active"
+            )
+        
+        # Check if already applied
+        existing_application = session.exec(
+            select(JobApplication)
+            .where(
+                (JobApplication.job_id == job_id) &
+                (JobApplication.candidate_id == current_user.id)
+            )
+        ).first()
+        
+        if existing_application:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already applied to this job"
+            )
+        
+        application = JobApplication(
+            job_id=job_id,
+            candidate_id=current_user.id,
+            cover_letter=data.cover_letter,
+            resume_url=data.resume_url,
+            status="applied"
+        )
+        
+        session.add(application)
+        job.applications_count += 1
+        session.add(job)
+        session.commit()
+        session.refresh(application)
+        
+        return JobApplicationResponse(
+            id=application.id,
+            job_id=application.job_id,
+            candidate_id=application.candidate_id,
+            status=application.status,
+            cover_letter=application.cover_letter,
+            resume_url=application.resume_url,
+            applied_at=application.applied_at,
+            updated_at=application.updated_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.get("/api/v1/my-applications")
+async def get_my_applications(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Get all applications submitted by the current candidate."""
+    if current_user.role != "C":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only candidates can view their applications"
+        )
+    
+    try:
+        applications = session.exec(
+            select(JobApplication)
+            .where(JobApplication.candidate_id == current_user.id)
+        ).all()
+        
+        return [
+            JobApplicationResponse(
+                id=app.id,
+                job_id=app.job_id,
+                candidate_id=app.candidate_id,
+                status=app.status,
+                cover_letter=app.cover_letter,
+                resume_url=app.resume_url,
+                applied_at=app.applied_at,
+                updated_at=app.updated_at
+            )
+            for app in applications
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.get("/api/v1/jobs/{job_id}/applications")
+async def get_job_applications(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Get all applications for a job posting (Employer only)."""
+    try:
+        job = session.get(JobPosting, job_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job posting not found"
+            )
+        
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only view applications for your own job postings"
+            )
+        
+        applications = session.exec(
+            select(JobApplication)
+            .where(JobApplication.job_id == job_id)
+        ).all()
+        
+        return [
+            JobApplicationResponse(
+                id=app.id,
+                job_id=app.job_id,
+                candidate_id=app.candidate_id,
+                status=app.status,
+                cover_letter=app.cover_letter,
+                resume_url=app.resume_url,
+                applied_at=app.applied_at,
+                updated_at=app.updated_at
+            )
+            for app in applications
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@app.put("/api/v1/applications/{application_id}/status")
+async def update_application_status(
+    application_id: int,
+    status_update: StatusUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """Update application status (Employer only)."""
+    try:
+        application = session.get(JobApplication, application_id)
+        
+        if not application:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found"
+            )
+        
+        job = session.get(JobPosting, application.job_id)
+        
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only update applications for your own job postings"
+            )
+        
+        new_status = status_update.status.lower()
+        
+        valid_statuses = ["applied", "reviewed", "shortlisted", "rejected", "accepted"]
+        if new_status not in valid_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+            )
+        
+        application.status = new_status
+        application.updated_at = datetime.utcnow()
+        session.add(application)
+        session.commit()
+        session.refresh(application)
+        
+        return JobApplicationResponse(
+            id=application.id,
+            job_id=application.job_id,
+            candidate_id=application.candidate_id,
+            status=application.status,
+            cover_letter=application.cover_letter,
+            resume_url=application.resume_url,
+            applied_at=application.applied_at,
+            updated_at=application.updated_at
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 port = int(os.environ.get("PORT", 8000))

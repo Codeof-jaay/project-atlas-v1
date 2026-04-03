@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getApplications, getJobs } from '../utils/store';
 import { motion } from 'framer-motion';
 import { 
   Briefcase, 
@@ -12,66 +11,107 @@ import {
   Clock, 
   ChevronRight,
   Building2,
-  MapPin
+  MapPin,
+  AlertCircle
 } from 'lucide-react';
 
 export default function MyApplications() {
-  const [apps, setApps] = useState([]);
-  const [jobs, setJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // In a real app, this would filter by the logged-in user's ID
-    setApps(getApplications());
-    setJobs(getJobs());
+    const fetchApplications = async () => {
+      try {
+        const token = localStorage.getItem('dashhr_token');
+        if (!token) {
+          setError('You must be logged in to view applications');
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch('http://localhost:8000/api/v1/my-applications', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load applications');
+        }
+
+        const data = await response.json();
+        setApplications(data);
+        setError('');
+      } catch (err) {
+        setError(err.message || 'Failed to load applications');
+        setApplications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
   }, []);
 
-  // WhatsApp-Style Transparency Logic (Consistent with Dashboard)
+  // Status mapping from backend to UI
   const getStatusUI = (status) => {
     switch (status) {
-      case 'Applied':
+      case 'applied':
         return { 
           icon: <Check size={16} className="text-slate-400" />, 
-          text: 'Sent', 
+          text: 'Applied', 
           color: 'text-slate-500 dark:text-slate-400',
           bg: 'bg-slate-100 dark:bg-white/5'
         };
-      case 'Screened':
+      case 'reviewed':
         return { 
           icon: <CheckCheck size={16} className="text-blue-500" />, 
-          text: 'Viewed', 
+          text: 'Reviewed', 
           color: 'text-blue-600 dark:text-blue-400',
           bg: 'bg-blue-50 dark:bg-blue-500/10'
         };
-      case 'Interview':
+      case 'shortlisted':
         return { 
           icon: <Calendar size={16} className="text-purple-500" />, 
-          text: 'Interview', 
+          text: 'Shortlisted', 
           color: 'text-purple-600 dark:text-purple-400',
           bg: 'bg-purple-50 dark:bg-purple-500/10'
         };
-      case 'Hired':
+      case 'accepted':
         return { 
           icon: <CheckCircle2 size={16} className="text-emerald-500" />, 
-          text: 'Offer', 
+          text: 'Accepted', 
           color: 'text-emerald-600 dark:text-emerald-400',
           bg: 'bg-emerald-50 dark:bg-emerald-500/10'
         };
-      case 'Rejected':
+      case 'rejected':
         return { 
           icon: <XCircle size={16} className="text-red-500" />, 
-          text: 'Closed', 
+          text: 'Rejected', 
           color: 'text-red-600 dark:text-red-400',
           bg: 'bg-red-50 dark:bg-red-500/10'
         };
       default:
         return { 
           icon: <Clock size={16} className="text-slate-400" />, 
-          text: 'Processing', 
+          text: 'Pending', 
           color: 'text-slate-500',
           bg: 'bg-slate-100 dark:bg-white/5'
         };
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0A0C10] pt-24 pb-12 px-6 transition-colors duration-300 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-500/30 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading your applications...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0A0C10] pt-24 pb-12 px-6 transition-colors duration-300">
@@ -87,7 +127,19 @@ export default function MyApplications() {
           </p>
         </div>
 
-        {apps.length === 0 ? (
+        {error ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/30 rounded-3xl p-8 text-center shadow-sm"
+          >
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle size={32} className="text-red-600 dark:text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">Error loading applications</h2>
+            <p className="text-red-700 dark:text-red-300 max-w-md mx-auto">{error}</p>
+          </motion.div>
+        ) : applications.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -96,9 +148,9 @@ export default function MyApplications() {
             <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
               <Clock size={32} className="text-slate-400" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">No history found</h2>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">No applications yet</h2>
             <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-8">
-              Your application history is currently empty. Start exploring open roles to build your pipeline.
+              You haven't applied to any jobs yet. Start exploring open roles to build your pipeline.
             </p>
             <Link 
               to="/jobs" 
@@ -110,8 +162,7 @@ export default function MyApplications() {
         ) : (
           <div className="bg-white dark:bg-[#12141C] border border-gray-200 dark:border-white/10 rounded-3xl shadow-sm overflow-hidden">
             <div className="divide-y divide-gray-100 dark:divide-white/5">
-              {apps.map((app, index) => {
-                const job = jobs.find((j) => j.id === app.jobId);
+              {applications.map((app, index) => {
                 const statusUI = getStatusUI(app.status);
                 
                 return (
@@ -122,23 +173,23 @@ export default function MyApplications() {
                     key={app.id}
                   >
                     <Link 
-                      to={`/jobs/${app.jobId}`}
+                      to={`/jobs/${app.job_id}`}
                       className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                     >
                       {/* Job Info */}
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2">
-                          {job?.title || 'Unknown Role'}
+                          {app.job_title || 'Unknown Role'}
                         </h3>
                         <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1.5">
                             <Building2 size={16} className="text-slate-400" />
-                            {job?.company || 'Unknown Company'}
+                            {app.company_name || 'Unknown Company'}
                           </span>
                           <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                           <span className="flex items-center gap-1.5">
                             <MapPin size={16} className="text-slate-400" />
-                            {job?.location || 'Unknown Location'}
+                            {app.job_location || 'Unknown Location'}
                           </span>
                         </div>
                       </div>

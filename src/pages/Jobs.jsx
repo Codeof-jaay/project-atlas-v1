@@ -1,17 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JobCard from '../components/JobCard';
-import { getJobs } from '../utils/store';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Briefcase } from 'lucide-react';
+import { Search, SlidersHorizontal, Briefcase, AlertCircle } from 'lucide-react';
 
 export default function Jobs() {
-  const allJobs = getJobs();
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
 
-  // Simple client-side search filtering
-  const filteredJobs = allJobs.filter(job => 
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await fetch('http://localhost:8000/api/v1/jobs?skip=0&limit=50');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch jobs');
+        }
+        
+        const data = await response.json();
+        setJobs(data);
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        setError('Failed to load job listings. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchJobs();
+  }, []);
+
+  // Client-side search filtering
+  const filteredJobs = jobs.filter(job => 
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    job.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     job.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -64,7 +89,39 @@ export default function Jobs() {
         </div>
 
         {/* Jobs Grid */}
-        {filteredJobs.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0.5 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, repeat: Infinity, repeatType: 'reverse' }}
+                className="h-96 bg-white dark:bg-[#1A1D27] rounded-[1.5rem] p-6 border border-gray-200 dark:border-white/5 shadow-sm"
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/30 rounded-3xl p-8 text-center shadow-sm"
+          >
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle size={32} className="text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-red-900 dark:text-red-200 mb-3">Failed to load jobs</h3>
+            <p className="text-red-700 dark:text-red-300 max-w-md mx-auto mb-6">
+              {error}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+            >
+              Retry
+            </button>
+          </motion.div>
+        ) : filteredJobs.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -87,7 +144,20 @@ export default function Jobs() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredJobs.map((j, index) => (
-              <JobCard job={j} key={j.id} index={index} />
+              <JobCard 
+                key={j.id} 
+                job={{
+                  id: j.id,
+                  title: j.title,
+                  company: j.company_name,
+                  location: j.location,
+                  type: j.job_type,
+                  description: j.description,
+                  requirements: j.required_skills || [],
+                  isVerified: true
+                }} 
+                index={index} 
+              />
             ))}
           </div>
         )}
