@@ -30,7 +30,7 @@ export default function MyApplications() {
           return;
         }
 
-        const response = await fetch('http://localhost:8000/api/v1/my-applications', {
+        const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/api/v1/my-applications', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

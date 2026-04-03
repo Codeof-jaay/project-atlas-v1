@@ -92,7 +92,7 @@ const OnboardingCandidate = () => {
         resume_url: formData.resume ? formData.resume.name : null 
       };
 
-      const response = await fetch('http://localhost:8000/onboarding/candidate', {
+      const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/onboarding/candidate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

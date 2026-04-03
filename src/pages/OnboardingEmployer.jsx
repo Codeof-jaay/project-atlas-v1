@@ -64,7 +64,7 @@ const OnboardingEmployer = () => {
         company_description: formData.company_description || '',
       };
 
-      const response = await fetch('http://localhost:8000/onboarding/employer', {
+      const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/onboarding/employer', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${auth.access_token}`,

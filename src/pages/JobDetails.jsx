@@ -12,7 +12,7 @@ export default function JobDetails() {
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/jobs/${id}`);
+        const response = await fetch(`https://atlas-backend-1-jvkb.onrender.com/api/v1/jobs/${id}`);
         if (!response.ok) {
           throw new Error('Job not found');
         }

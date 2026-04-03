@@ -14,7 +14,7 @@ export default function Jobs() {
       try {
         setLoading(true);
         setError('');
-        const response = await fetch('http://localhost:8000/api/v1/jobs?skip=0&limit=50');
+        const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/api/v1/jobs?skip=0&limit=50');
         
         if (!response.ok) {
           throw new Error('Failed to fetch jobs');
