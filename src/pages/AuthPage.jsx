@@ -23,7 +23,7 @@ const AuthPage = () => {
     try {
       if (isLogin) {
         // --- LOGIN FLOW (Matches original backend JSON expectation) ---
-        const response = await fetch('http://localhost:8000/login', {
+        const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ const AuthPage = () => {
           registerData.full_name = name;
         }
 
-        const response = await fetch('http://localhost:8000/register', {
+        const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(registerData),
