@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileText, Mail, User, ChevronLeft, Search, Loader, AlertCircle } from 'lucide-react';
-import { getAuth } from '../utils/auth';
+import { getAuth, checkAuthStatus } from '../utils/auth'; // PARTNER FIX: Added Interceptor
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
@@ -36,6 +36,9 @@ export default function Applicants() {
           },
         });
 
+        // 1. PARTNER FIX: Interceptor
+        if (checkAuthStatus(jobResponse, navigate)) return;
+
         if (!jobResponse.ok) {
           throw new Error('Job not found');
         }
@@ -50,6 +53,9 @@ export default function Applicants() {
             'Content-Type': 'application/json',
           },
         });
+
+        // 2. PARTNER FIX: Interceptor
+        if (checkAuthStatus(appsResponse, navigate)) return;
 
         if (!appsResponse.ok) {
           throw new Error('Failed to fetch applications');
@@ -81,6 +87,9 @@ export default function Applicants() {
         },
         body: JSON.stringify({ status: newStatus }),
       });
+
+      // 3. PARTNER FIX: Interceptor for the status update action
+      if (checkAuthStatus(response, navigate)) return;
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getRole, getAuth } from '../utils/auth';
+import { getRole, getAuth, checkAuthStatus } from '../utils/auth'; // INTERCEPTOR IMPORTED
 import { motion } from 'framer-motion';
 import { 
   Briefcase, 
@@ -27,7 +27,6 @@ export default function Dashboard() {
   // Restrict Dashboard to Candidates only
   useEffect(() => {
     const role = getRole();
-    // Accommodate 'C' or 'candidate' depending on how auth saves it
     if (role !== 'C' && role !== 'candidate') {
       navigate('/auth');
     }
@@ -53,6 +52,9 @@ export default function Dashboard() {
           },
         });
 
+        // 1. PARTNER LOGIC INJECTED HERE
+        if (checkAuthStatus(appsResponse, navigate)) return;
+
         if (!appsResponse.ok) {
           throw new Error(`Failed to fetch applications: ${appsResponse.status}`);
         }
@@ -70,6 +72,9 @@ export default function Dashboard() {
                   'Content-Type': 'application/json',
                 },
               });
+              
+              // 2. PARTNER LOGIC INJECTED HERE
+              if (checkAuthStatus(jobResponse, navigate)) return;
               
               if (jobResponse.ok) {
                 const jobData = await jobResponse.json();

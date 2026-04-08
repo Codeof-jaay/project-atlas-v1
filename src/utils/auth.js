@@ -37,6 +37,7 @@ export const clearAuth = () => {
   try {
     // Core Auth
     localStorage.removeItem('dashhr_auth');
+    localStorage.removeItem('dashhr_token'); // Also clearing the legacy token just in case
     localStorage.removeItem('dashhr_user_email');
     localStorage.removeItem('dashhr_onboarding_completed');
     
@@ -181,4 +182,17 @@ export const hasRouteAccess = (routeRole) => {
   };
   
   return accessMatrix[userRole]?.includes(routeRole) || false;
+};
+
+export const handleAuthError = (navigate) => {
+  clearAuth();
+  navigate('/auth');
+};
+
+export const checkAuthStatus = (response, navigate) => {
+  if (response.status === 401) {
+    handleAuthError(navigate);
+    return true;
+  }
+  return false;
 };

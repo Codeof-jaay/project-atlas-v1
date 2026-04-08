@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UploadCloud, CheckCircle2, Building2, MapPin, ArrowLeft, AlertCircle } from 'lucide-react';
-import { getAuth } from '../utils/auth';
+import { getAuth, handleAuthError } from '../utils/auth'; // PARTNER FIX: Imported handler
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
@@ -43,6 +43,12 @@ export default function Apply() {
             },
           });
 
+          // PARTNER FIX: Added explicit 401 handling
+          if (appsResponse.status === 401) {
+            handleAuthError(navigate);
+            return;
+          }
+
           if (appsResponse.ok) {
             const appsData = await appsResponse.json();
             const alreadyApplied = appsData.some(app => app.job_id === parseInt(jobId));
@@ -60,7 +66,7 @@ export default function Apply() {
     if (jobId) {
       fetchJob();
     }
-  }, [jobId]);
+  }, [jobId, navigate]);
 
   if (loading) {
     return (
@@ -109,6 +115,12 @@ export default function Apply() {
           resume_url: resumeUrl
         })
       });
+
+      // PARTNER FIX: Added explicit 401 handling
+      if (response.status === 401) {
+        handleAuthError(navigate);
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Briefcase, Users, Clock, Eye, Trash2, X, Activity, Loader, TrendingUp, MapPin } from 'lucide-react';
-import { getRole, getAuth } from '../utils/auth';
+import { getRole, getAuth, checkAuthStatus } from '../utils/auth'; // INTERCEPTOR IMPORTED
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
@@ -56,6 +56,9 @@ export default function Employer() {
           },
         });
 
+        // 1. PARTNER LOGIC INJECTED HERE
+        if (checkAuthStatus(meResponse, navigate)) return;
+
         let currentUserId = null;
         if (meResponse.ok) {
           const userData = await meResponse.json();
@@ -70,6 +73,9 @@ export default function Employer() {
             'Content-Type': 'application/json',
           },
         });
+
+        // 2. PARTNER LOGIC INJECTED HERE
+        if (checkAuthStatus(jobsResponse, navigate)) return;
 
         if (!jobsResponse.ok) {
           throw new Error(`Failed to fetch jobs: ${jobsResponse.status}`);
@@ -89,6 +95,9 @@ export default function Employer() {
               'Content-Type': 'application/json',
             },
           });
+          
+          // 3. PARTNER LOGIC INJECTED HERE
+          if (checkAuthStatus(appsResponse, navigate)) return;
           
           if (appsResponse.ok) {
             const appsData = await appsResponse.json();
@@ -427,6 +436,16 @@ export default function Employer() {
                         : 'border-gray-200 dark:border-white/10'
                     }`}
                   />
+                  {jobForm.description.length < 20 && jobForm.description.length > 0 && (
+                    <p className="text-xs text-red-500 mt-1 ml-1">
+                      Minimum 20 characters required ({20 - jobForm.description.length} more needed)
+                    </p>
+                  )}
+                  {jobForm.description.length > 3000 && (
+                    <p className="text-xs text-red-500 mt-1 ml-1">
+                      Maximum 3000 characters exceeded
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
