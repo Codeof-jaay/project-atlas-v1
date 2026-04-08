@@ -17,6 +17,7 @@ import {
 
 export default function MyApplications() {
   const [applications, setApplications] = useState([]);
+  const [jobs, setJobs] = useState({}); // NEW: Store job details here
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -30,6 +31,7 @@ export default function MyApplications() {
           return;
         }
 
+        // 1. Fetch the Application IDs and Statuses
         const response = await fetch('https://atlas-backend-1-jvkb.onrender.com/api/v1/my-applications', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -42,6 +44,26 @@ export default function MyApplications() {
 
         const data = await response.json();
         setApplications(data);
+
+        // 2. Fetch the specific Job Details for each application
+        if (data && data.length > 0) {
+          const jobsMap = {};
+          for (const app of data) {
+            if (app.job_id && !jobsMap[app.job_id]) {
+              const jobRes = await fetch(`https://atlas-backend-1-jvkb.onrender.com/api/v1/jobs/${app.job_id}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              if (jobRes.ok) {
+                jobsMap[app.job_id] = await jobRes.json();
+              }
+            }
+          }
+          setJobs(jobsMap);
+        }
+
         setError('');
       } catch (err) {
         setError(err.message || 'Failed to load applications');
@@ -164,6 +186,7 @@ export default function MyApplications() {
             <div className="divide-y divide-gray-100 dark:divide-white/5">
               {applications.map((app, index) => {
                 const statusUI = getStatusUI(app.status);
+                const job = jobs[app.job_id]; // NEW: Map the specific job data
                 
                 return (
                   <motion.div 
@@ -179,17 +202,17 @@ export default function MyApplications() {
                       {/* Job Info */}
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-2">
-                          {app.job_title || 'Unknown Role'}
+                          {job?.title || 'Loading Role...'}
                         </h3>
                         <div className="flex flex-wrap items-center gap-4 text-sm font-medium text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1.5">
                             <Building2 size={16} className="text-slate-400" />
-                            {app.company_name || 'Unknown Company'}
+                            {job?.company_name || 'Loading Company...'}
                           </span>
                           <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
                           <span className="flex items-center gap-1.5">
                             <MapPin size={16} className="text-slate-400" />
-                            {app.job_location || 'Unknown Location'}
+                            {job?.location || 'Remote'}
                           </span>
                         </div>
                       </div>

@@ -15,16 +15,23 @@ import OnboardingEmployer from './pages/OnboardingEmployer';
 import Profile from './pages/Profile';
 import MyApplications from './pages/MyApplications';
 
-// Components & Utils
+// Components, Layouts & Utils
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import DashboardLayout from './layouts/DashboardLayout'; // <--- NEW IMPORT
 import { getAuth, ROLES, isAuthenticated, getRole } from './utils/auth';
 
 // A simple layout wrapper that conditionally hides the Navbar
 const Layout = ({ children }) => {
   const location = useLocation();
+  
+  // 1. We added dashboard paths here so the global top navbar disappears 
+  // when the DashboardLayout sidebar is on the screen!
+  const dashboardPaths = ['/dashboard', '/applications', '/apply', '/employer', '/profile'];
+  const isDashboardRoute = dashboardPaths.some(path => location.pathname.startsWith(path));
+  
   const hideNavbarRoutes = ['/auth', '/onboarding/candidate', '/onboarding/employer'];
-  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
+  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname) || isDashboardRoute;
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0A0C10] text-slate-900 dark:text-white transition-colors duration-300 font-sans flex flex-col">
@@ -42,7 +49,6 @@ const PublicOnlyRoute = ({ children }) => {
   const userRole = getRole();
   
   if (isAuth) {
-    // Redirect logged-in users to their respective dashboards
     const defaultRoute = userRole === 'C' ? '/dashboard' : userRole === 'R' ? '/employer' : '/';
     return <Navigate to={defaultRoute} replace />;
   }
@@ -55,7 +61,6 @@ const JobsAccessRoute = ({ children }) => {
   const isAuth = isAuthenticated();
   const userRole = getRole();
   
-  // If logged in and employer, redirect to their employer portal
   if (isAuth && userRole === 'R') {
     return <Navigate to="/employer" replace />;
   }
@@ -67,7 +72,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial auth check to prevent flicker
     const { access_token } = getAuth();
     setLoading(false);
   }, []);
@@ -83,7 +87,7 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        {/* Public Routes - Blocked for logged-in users */}
+        {/* Public Routes */}
         <Route path="/" element={<PublicOnlyRoute><Landing /></PublicOnlyRoute>} />
         <Route path="/auth" element={<PublicOnlyRoute><AuthPage /></PublicOnlyRoute>} />
         
@@ -100,25 +104,31 @@ export default function App() {
           <Route path="/onboarding/employer" element={<OnboardingEmployer />} />
         </Route>
 
-        {/* Protected Routes: Require Auth + Specific Role + Completed Onboarding */}
-        
-        {/* Candidate Only Routes */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE]} requireOnboarding={true} />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/applications" element={<MyApplications />} />
-          <Route path="/apply/:jobId" element={<Apply />} />
-        </Route>
+        {/* ========================================== */}
+        {/* NEW: DASHBOARD LAYOUT WRAPPER              */}
+        {/* ========================================== */}
+        <Route element={<DashboardLayout />}>
+          
+          {/* Candidate Only Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE]} requireOnboarding={true} />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/applications" element={<MyApplications />} />
+            <Route path="/apply/:jobId" element={<Apply />} />
+          </Route>
 
-        {/* Employer Only Routes */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLES.EMPLOYER]} requireOnboarding={true} />}>
-          <Route path="/employer" element={<Employer />} />
-          <Route path="/employer/job/:id/applicants" element={<Applicants />} />
-        </Route>
+          {/* Employer Only Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.EMPLOYER]} requireOnboarding={true} />}>
+            <Route path="/employer" element={<Employer />} />
+            <Route path="/employer/job/:id/applicants" element={<Applicants />} />
+          </Route>
 
-        {/* Shared Protected Routes (Candidate or Employer) */}
-        <Route element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE, ROLES.EMPLOYER]} requireOnboarding={false} />}>
-          <Route path="/profile" element={<Profile />} />
+          {/* Shared Protected Routes (Candidate or Employer) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.CANDIDATE, ROLES.EMPLOYER]} requireOnboarding={false} />}>
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+
         </Route>
+        {/* ========================================== */}
 
         {/* Catch-all: Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />

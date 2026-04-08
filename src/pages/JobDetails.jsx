@@ -2,22 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Building2, MapPin, ShieldCheck, CheckCircle2, Clock, Zap, AlertCircle } from 'lucide-react';
+import { getAuth } from '../utils/auth'; // NEW: Import auth to check logged-in user
 
 export default function JobDetails() {
   const { id } = useParams();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // NEW: State to track if the user already applied
+  const [hasApplied, setHasApplied] = useState(false);
 
   useEffect(() => {
-    const fetchJob = async () => {
+    const fetchJobAndStatus = async () => {
       try {
+        // 1. Fetch the actual job details
         const response = await fetch(`https://atlas-backend-1-jvkb.onrender.com/api/v1/jobs/${id}`);
         if (!response.ok) {
           throw new Error('Job not found');
         }
         const data = await response.json();
         setJob(data);
+
+        // 2. NEW: Check if the logged-in user has already applied to this job
+        const { access_token } = getAuth();
+        if (access_token) {
+          const appsRes = await fetch('https://atlas-backend-1-jvkb.onrender.com/api/v1/my-applications', {
+            headers: { 'Authorization': `Bearer ${access_token}` }
+          });
+          
+          if (appsRes.ok) {
+            const appsData = await appsRes.json();
+            // Check if the current job ID exists in the user's application history
+            const alreadyApplied = appsData.some(app => String(app.job_id) === String(id));
+            setHasApplied(alreadyApplied);
+          }
+        }
+
         setError('');
       } catch (err) {
         setError(err.message || 'Failed to load job details');
@@ -28,7 +49,7 @@ export default function JobDetails() {
     };
 
     if (id) {
-      fetchJob();
+      fetchJobAndStatus();
     }
   }, [id]);
 
@@ -148,26 +169,38 @@ export default function JobDetails() {
 
           </div>
           
-          {/* Desktop CTA (Hidden on mobile, sticky bottom bar used instead) */}
+          {/* Desktop CTA */}
           <div className="hidden lg:flex justify-end p-8 md:p-10 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#1A1D27]">
-            <Link 
-              to={`/apply/${job.id}`} 
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20"
-            >
-              Easy Apply Now
-            </Link>
+            {hasApplied ? (
+              <button disabled className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-10 py-4 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl font-bold cursor-not-allowed border border-slate-300 dark:border-slate-700">
+                <CheckCircle2 size={18} /> Already Applied
+              </button>
+            ) : (
+              <Link 
+                to={`/apply/${job.id}`} 
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20"
+              >
+                Easy Apply Now
+              </Link>
+            )}
           </div>
         </motion.div>
       </div>
 
       {/* Mobile Sticky Bottom CTA */}
       <div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-white/80 dark:bg-[#12141C]/80 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 z-40">
-        <Link 
-          to={`/apply/${job.id}`} 
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
-        >
-          Easy Apply Now
-        </Link>
+        {hasApplied ? (
+          <button disabled className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-bold cursor-not-allowed border border-slate-300 dark:border-slate-700">
+            <CheckCircle2 size={18} /> Already Applied
+          </button>
+        ) : (
+          <Link 
+            to={`/apply/${job.id}`} 
+            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-600/20"
+          >
+            Easy Apply Now
+          </Link>
+        )}
       </div>
 
     </div>
