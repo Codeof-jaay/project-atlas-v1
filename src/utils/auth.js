@@ -182,3 +182,16 @@ export const hasRouteAccess = (routeRole) => {
   
   return accessMatrix[userRole]?.includes(routeRole) || false;
 };
+
+export const handleAuthError = (navigate) => {
+  clearAuth();
+  navigate('/auth');
+};
+
+export const checkAuthStatus = (response, navigate) => {
+  if (response.status === 401) {
+    handleAuthError(navigate);
+    return true;
+  }
+  return false;
+};

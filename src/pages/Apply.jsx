@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UploadCloud, CheckCircle2, Building2, MapPin, ArrowLeft, AlertCircle } from 'lucide-react';
-import { getAuth } from '../utils/auth';
+import { getAuth, handleAuthError } from '../utils/auth';
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
@@ -42,6 +42,11 @@ export default function Apply() {
               'Content-Type': 'application/json',
             },
           });
+
+          if (appsResponse.status === 401) {
+            handleAuthError(navigate);
+            return;
+          }
 
           if (appsResponse.ok) {
             const appsData = await appsResponse.json();
@@ -109,6 +114,11 @@ export default function Apply() {
           resume_url: resumeUrl
         })
       });
+
+      if (response.status === 401) {
+        handleAuthError(navigate);
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getRole, getAuth } from '../utils/auth';
+import { getRole, getAuth, checkAuthStatus } from '../utils/auth';
 import { motion } from 'framer-motion';
 import { 
   Briefcase, 
@@ -52,6 +52,8 @@ export default function Dashboard() {
           },
         });
 
+        if (checkAuthStatus(appsResponse, navigate)) return;
+
         if (!appsResponse.ok) {
           throw new Error(`Failed to fetch applications: ${appsResponse.status}`);
         }
@@ -70,6 +72,8 @@ export default function Dashboard() {
                   'Content-Type': 'application/json',
                 },
               });
+              
+              if (checkAuthStatus(jobResponse, navigate)) return;
               
               if (jobResponse.ok) {
                 const jobData = await jobResponse.json();

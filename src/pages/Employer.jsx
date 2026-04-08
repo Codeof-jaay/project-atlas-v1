@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Briefcase, Users, Clock, Eye, Trash2, X, Activity, Loader } from 'lucide-react';
-import { getRole, getAuth } from '../utils/auth';
+import { getRole, getAuth, checkAuthStatus } from '../utils/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
@@ -55,6 +55,8 @@ export default function Employer() {
           },
         });
 
+        if (checkAuthStatus(meResponse, navigate)) return;
+
         let currentUserId = null;
         if (meResponse.ok) {
           const userData = await meResponse.json();
@@ -69,6 +71,8 @@ export default function Employer() {
             'Content-Type': 'application/json',
           },
         });
+
+        if (checkAuthStatus(jobsResponse, navigate)) return;
 
         if (!jobsResponse.ok) {
           throw new Error(`Failed to fetch jobs: ${jobsResponse.status}`);
@@ -88,6 +92,8 @@ export default function Employer() {
               'Content-Type': 'application/json',
             },
           });
+          
+          if (checkAuthStatus(appsResponse, navigate)) return;
           
           if (appsResponse.ok) {
             const appsData = await appsResponse.json();
