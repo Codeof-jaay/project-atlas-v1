@@ -15,19 +15,26 @@ import OnboardingEmployer from './pages/OnboardingEmployer';
 import Profile from './pages/Profile';
 import MyApplications from './pages/MyApplications';
 
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminJobs from './pages/admin/AdminJobs';
+import AdminLogs from './pages/admin/AdminLogs';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
+
 // Components, Layouts & Utils
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
-import DashboardLayout from './layouts/DashboardLayout'; // <--- NEW IMPORT
+import DashboardLayout from './layouts/DashboardLayout'; 
+import AdminLayout from './layouts/AdminLayout'; // <--- NEW IMPORT
 import { getAuth, ROLES, isAuthenticated, getRole } from './utils/auth';
 
 // A simple layout wrapper that conditionally hides the Navbar
 const Layout = ({ children }) => {
   const location = useLocation();
   
-  // 1. We added dashboard paths here so the global top navbar disappears 
-  // when the DashboardLayout sidebar is on the screen!
-  const dashboardPaths = ['/dashboard', '/applications', '/apply', '/employer', '/profile'];
+  //Added '/admin' so the global top navbar disappears for admins
+  const dashboardPaths = ['/dashboard', '/applications', '/apply', '/employer', '/profile', '/admin'];
   const isDashboardRoute = dashboardPaths.some(path => location.pathname.startsWith(path));
   
   const hideNavbarRoutes = ['/auth', '/onboarding/candidate', '/onboarding/employer'];
@@ -49,7 +56,12 @@ const PublicOnlyRoute = ({ children }) => {
   const userRole = getRole();
   
   if (isAuth) {
-    const defaultRoute = userRole === 'C' ? '/dashboard' : userRole === 'R' ? '/employer' : '/';
+    // Added smart routing for Admins so they land on their specific dashboard
+    let defaultRoute = '/';
+    if (userRole === 'C') defaultRoute = '/dashboard';
+    else if (userRole === 'R') defaultRoute = '/employer';
+    else if (userRole === 'A') defaultRoute = '/admin';
+    
     return <Navigate to={defaultRoute} replace />;
   }
   
@@ -104,9 +116,8 @@ export default function App() {
           <Route path="/onboarding/employer" element={<OnboardingEmployer />} />
         </Route>
 
-        {/* ========================================== */}
-        {/* NEW: DASHBOARD LAYOUT WRAPPER              */}
-        {/* ========================================== */}
+
+        {/* DASHBOARD LAYOUT WRAPPER                   */}
         <Route element={<DashboardLayout />}>
           
           {/* Candidate Only Routes */}
@@ -128,7 +139,18 @@ export default function App() {
           </Route>
 
         </Route>
-        {/* ========================================== */}
+
+        {/*  ADMIN LAYOUT WRAPPER            */}
+        <Route element={<AdminLayout />}>
+          {/* Admin Only Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} requireOnboarding={false} />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/jobs" element={<AdminJobs />} />
+            <Route path="/admin/logs" element={<AdminLogs />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          </Route>
+        </Route>
 
         {/* Catch-all: Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
