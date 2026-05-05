@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 
 // Pages
 import Landing from './pages/Landing';
@@ -129,6 +130,7 @@ export default function App() {
         {/* Catch-all: Redirect to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <Analytics />
     </Layout>
   );
 }
