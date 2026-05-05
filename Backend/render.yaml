@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: atlas-backend
+    env: python
+    plan: starter
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    
+    # Environment variables
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: SECRET_KEY
+        scope: secret
+        # Generate a secure key: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      - key: ALLOWED_ORIGINS
+        value: https://your-frontend-domain.com,http://localhost:5173
+      - key: DATABASE_URL
+        scope: secret
+        # Use: postgresql://user:password@host:port/dbname for production
+        # Currently using SQLite: sqlite:///./database.db
+    
+    # Health check
+    healthCheckPath: /
+    healthCheckInterval: 30
+    
+    # Auto-deploy on git push
+    autoDeployFromGit: true

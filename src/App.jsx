@@ -9,6 +9,7 @@ import Apply from './pages/Apply';
 import Dashboard from './pages/Dashboard';
 import Employer from './pages/Employer';
 import Applicants from './pages/Applicants';
+import Admin from './pages/Admin';
 import AuthPage from './pages/AuthPage';
 import OnboardingCandidate from './pages/OnboardingCandidate';
 import OnboardingEmployer from './pages/OnboardingEmployer';
@@ -113,6 +114,11 @@ export default function App() {
         <Route element={<ProtectedRoute allowedRoles={[ROLES.EMPLOYER]} requireOnboarding={true} />}>
           <Route path="/employer" element={<Employer />} />
           <Route path="/employer/job/:id/applicants" element={<Applicants />} />
+        </Route>
+
+        {/* Admin Only Routes */}
+        <Route element={<ProtectedRoute allowedRoles={['A']} requireOnboarding={false} />}>
+          <Route path="/admin" element={<Admin />} />
         </Route>
 
         {/* Shared Protected Routes (Candidate or Employer) */}

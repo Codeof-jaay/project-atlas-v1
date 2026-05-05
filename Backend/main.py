@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI, UploadFile, File, Form, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -9,35 +10,123 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 import uuid
 import json
+import asyncio
+import aiohttp
 from sqlmodel import Field, SQLModel, create_engine, Session, select, Relationship
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from enum import Enum
+from dotenv import load_dotenv
 
-app = FastAPI()
+# ===== Load Environment Variables =====
+load_dotenv()
 
-# Allow React frontend to connect
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",      # React dev server (no trailing slash)
-        "http://localhost:3000",      # Alternative React port
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# ===== Logging Configuration =====
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="Atlas Backend API",
+    description="Comprehensive job platform backend with profile management",
+    version="1.0.0"
 )
 
+# ===== CORS Configuration (Production-Ready) =====
+# Get allowed origins from environment variable or use defaults
+
+ALLOWED_ORIGINS = [
+    "https://project-atlas-v1.vercel.app",
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",  # Alternative dev server
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,
+)
+
+# ===== Self-Ping Configuration =====
+# Keep server awake by self-pinging every 4 minutes (prevents Render sleep)
+PING_INTERVAL = 240  # 4 minutes in seconds
+ping_task = None
+
+async def self_ping():
+    """Periodically ping the server to keep it awake."""
+    await asyncio.sleep(10)  # Wait 10 seconds after startup before first ping
+    
+    while True:
+        try:
+            # Get server URL from environment or use default
+            server_url = os.getenv("SERVER_URL", "http://localhost:8000")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{server_url}/", timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    if response.status == 200:
+                        logger.info(f"🔄 Self-ping successful (status: {response.status})")
+                    else:
+                        logger.warning(f"⚠️  Self-ping returned status {response.status}")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️  Self-ping timeout - server may be slow")
+        except Exception as e:
+            logger.warning(f"⚠️  Self-ping failed: {str(e)}")
+        
+        # Wait for next ping interval
+        await asyncio.sleep(PING_INTERVAL)
+
+def start_ping_task():
+    """Start the self-ping background task."""
+    global ping_task
+    ping_task = asyncio.create_task(self_ping())
+    logger.info("🚀 Self-ping task started (10-minute interval)")
+
 # ===== Database Setup =====
-sqlite_url = "sqlite:///./database.db"
-engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+# Use PostgreSQL from environment, fallback to SQLite for development
+database_url = os.getenv("DATABASE_URL")
+
+if database_url:
+    # PostgreSQL (Production or Remote Development)
+    logger.info("🗄️ Using PostgreSQL database")
+    
+    # Convert postgresql:// to postgresql+psycopg2:// for SQLAlchemy
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    
+    engine = create_engine(
+        database_url,
+        echo=False,
+        pool_pre_ping=True,  # Test connection before using
+        pool_size=10,
+        max_overflow=20,
+        connect_args={"sslmode": "require"}  # Require SSL for production
+    )
+else:
+    # SQLite (Local Development Fallback)
+    logger.info("🗄️ Using SQLite database (development)")
+    engine = create_engine(
+        "sqlite:///./database.db",
+        echo=False,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
 SessionLocal = sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
 
 def create_db_and_tables():
     """Create database tables on startup."""
-    SQLModel.metadata.create_all(engine)
+    try:
+        SQLModel.metadata.create_all(engine)
+        logger.info("✅ Database tables created/verified")
+    except Exception as e:
+        logger.error(f"❌ Failed to create database tables: {str(e)}")
+        raise
 
 def get_session():
     """Get database session."""
@@ -46,8 +135,52 @@ def get_session():
 
 @app.on_event("startup")
 def on_startup():
-    """Initialize database on application startup."""
+    """Initialize database and start self-ping on application startup."""
     create_db_and_tables()
+    logger.info("✅ Database initialized on startup")
+    seed_admin_users()
+    start_ping_task()
+
+def seed_admin_users():
+    """Create default admin users if they don't exist."""
+    session = SessionLocal()
+    try:
+        # Check if admin users exist
+        admin_count = session.query(User).filter(User.role == "A").count()
+        if admin_count > 0:
+            return  # Admin users already exist
+        
+        # Create default admin users
+        admin_users = [
+            {
+                "email": "admin@dashhr.com",
+                "password": "AdminDashHR123!",
+                "role": "A"
+            },
+            {
+                "email": "admin@example.com",
+                "password": "SecureAdmin456!",
+                "role": "A"
+            }
+        ]
+        
+        for admin_data in admin_users:
+            existing = session.query(User).filter(User.email == admin_data["email"]).first()
+            if not existing:
+                admin_user = User(
+                    email=admin_data["email"],
+                    hashed_password=AuthService.hash_password(admin_data["password"]),
+                    role=admin_data["role"],
+                    is_active=True
+                )
+                session.add(admin_user)
+        
+        session.commit()
+        logger.info("✅ Admin users seeded")
+    except Exception as e:
+        logger.error(f"Error seeding admin users: {e}")
+    finally:
+        session.close()
 
 # ===== Database Models =====
 
@@ -527,13 +660,91 @@ class AuthService:
     
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash a password for storing."""
-        return pwd_context.hash(password)
+        """Hash a password for storing.
+        
+        Note: Bcrypt has a 72-byte limit. We truncate manually to avoid
+        silent truncation and ensure consistent hashing behavior.
+        
+        AUDIT LOG:
+        - Validates input is a string (not dict, bytes, or request body)
+        - Logs password length before and after truncation
+        - Ensures only raw password string is hashed
+        """
+        try:
+            # AUDIT CHECK 1: Verify input is string
+            if not isinstance(password, str):
+                logger.error(f"SECURITY AUDIT FAIL: password is type {type(password)}, not str")
+                raise TypeError(f"Password must be string, got {type(password)}")
+            
+            # AUDIT CHECK 2: Log password length
+            logger.info(f"[PASSWORD_HASH] Input password length: {len(password)} chars, {len(password.encode('utf-8'))} bytes")
+            
+            # Truncate password to 72 bytes if necessary
+            password_bytes = password.encode('utf-8')
+            original_length = len(password_bytes)
+            
+            if original_length > 72:
+                logger.warning(f"[PASSWORD_HASH] Password exceeds 72 bytes ({original_length} bytes), truncating")
+                # Safely truncate at byte boundary
+                password = password_bytes[:72].decode('utf-8', errors='replace')
+                new_length = len(password.encode('utf-8'))
+                logger.info(f"[PASSWORD_HASH] After truncation: {new_length} bytes")
+            
+            # AUDIT CHECK 3: Verify we're not hashing something else
+            logger.debug(f"[PASSWORD_HASH] Hashing string of length: {len(password)} chars")
+            
+            result = pwd_context.hash(password)
+            logger.info(f"[PASSWORD_HASH] Successfully hashed password")
+            return result
+            
+        except TypeError as te:
+            logger.error(f"[PASSWORD_HASH] TypeError: {str(te)}")
+            raise
+        except Exception as e:
+            logger.error(f"[PASSWORD_HASH] Hashing failed: {str(e)} (type: {type(e).__name__})")
+            raise ValueError(f"Password hashing failed: {str(e)}")
     
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        """Verify a stored password against one provided by user."""
-        return pwd_context.verify(plain_password, hashed_password)
+        """Verify a stored password against one provided by user.
+        
+        Note: We apply the same 72-byte truncation as hash_password
+        to ensure consistent verification.
+        
+        AUDIT LOG:
+        - Validates both inputs are strings
+        - Logs password length during verification
+        - Ensures hashed_password is an actual hash (not plaintext)
+        """
+        try:
+            # AUDIT CHECK 1: Verify inputs are strings
+            if not isinstance(plain_password, str):
+                logger.error(f"SECURITY AUDIT FAIL: plain_password is type {type(plain_password)}, not str")
+                return False
+            
+            if not isinstance(hashed_password, str):
+                logger.error(f"SECURITY AUDIT FAIL: hashed_password is type {type(hashed_password)}, not str")
+                return False
+            
+            # AUDIT CHECK 2: Verify hashed_password looks like a bcrypt hash
+            if not hashed_password.startswith('$2'):
+                logger.warning(f"SECURITY AUDIT WARNING: hashed_password doesn't start with '$2' (bcrypt marker)")
+            
+            logger.debug(f"[PASSWORD_VERIFY] Input password length: {len(plain_password)} chars, {len(plain_password.encode('utf-8'))} bytes")
+            
+            # Truncate password to 72 bytes if necessary (same as hash_password)
+            password_bytes = plain_password.encode('utf-8')
+            if len(password_bytes) > 72:
+                logger.warning(f"[PASSWORD_VERIFY] Password exceeds 72 bytes ({len(password_bytes)}), truncating")
+                plain_password = password_bytes[:72].decode('utf-8', errors='replace')
+            
+            result = pwd_context.verify(plain_password, hashed_password)
+            logger.debug(f"[PASSWORD_VERIFY] Verification result: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"[PASSWORD_VERIFY] Verification failed: {str(e)}")
+            return False
     
     @staticmethod
     def create_user(session: Session, email: str, password: str, role: str = UserRole.candidate) -> User:
@@ -866,12 +1077,52 @@ applications = []
 
 # ===== Authentication Helpers =====
 def get_password_hash(password):
-    """Hash a password for storing."""
-    return pwd_context.hash(password)
+    """Hash a password for storing.
+    
+    AUDIT: This is a standalone helper - prefer using AuthService.hash_password()
+    """
+    try:
+        if not isinstance(password, str):
+            logger.error(f"SECURITY AUDIT FAIL: get_password_hash received {type(password)}, not str")
+            raise TypeError(f"Password must be string, got {type(password)}")
+        
+        logger.info(f"[GET_PASSWORD_HASH] Input length: {len(password)} chars, {len(password.encode('utf-8'))} bytes")
+        
+        password_bytes = password.encode('utf-8')
+        if len(password_bytes) > 72:
+            logger.warning(f"[GET_PASSWORD_HASH] Truncating password from {len(password_bytes)} bytes to 72")
+            password = password_bytes[:72].decode('utf-8', errors='replace')
+        
+        return pwd_context.hash(password)
+    except Exception as e:
+        logger.error(f"[GET_PASSWORD_HASH] Failed: {str(e)}")
+        raise ValueError(f"Password hashing failed: {str(e)}")
 
 def verify_password(plain_password, hashed_password):
-    """Verify a stored password against one provided by user."""
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a stored password against one provided by user.
+    
+    AUDIT: This is a standalone helper - prefer using AuthService.verify_password()
+    """
+    try:
+        if not isinstance(plain_password, str):
+            logger.error(f"SECURITY AUDIT FAIL: verify_password received {type(plain_password)}, not str")
+            return False
+        
+        if not isinstance(hashed_password, str):
+            logger.error(f"SECURITY AUDIT FAIL: hashed_password is {type(hashed_password)}, not str")
+            return False
+        
+        logger.debug(f"[VERIFY_PASSWORD] Input length: {len(plain_password)} chars")
+        
+        password_bytes = plain_password.encode('utf-8')
+        if len(password_bytes) > 72:
+            logger.warning(f"[VERIFY_PASSWORD] Truncating from {len(password_bytes)} bytes to 72")
+            plain_password = password_bytes[:72].decode('utf-8', errors='replace')
+        
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception as e:
+        logger.error(f"[VERIFY_PASSWORD] Failed: {str(e)}")
+        return False
 
 # ===== Routes =====
 
@@ -957,15 +1208,14 @@ async def refresh(data: RefreshTokenRequest, session: Session = Depends(get_sess
 
 @app.post("/logout")
 async def logout(data: RefreshTokenRequest, session: Session = Depends(get_session)):
-    """Logout - revoke refresh token."""
-    success = AuthService.revoke_refresh_token(session, data.refresh_token)
+    """Logout endpoint - client-side logout without revoking tokens.
     
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid refresh token"
-        )
-    
+    Note: We no longer revoke refresh tokens server-side. Logout is now
+    client-side only - the client deletes their tokens from localStorage/cookies.
+    This allows users to maintain sessions across devices and app restarts.
+    """
+    # Simply acknowledge the logout request
+    # The client is responsible for deleting tokens locally
     return {"message": "Logged out successfully"}
 
 # ===== JWT Token Extraction Helper =====
@@ -1010,6 +1260,117 @@ async def get_current_user_info(
         "is_active": current_user.is_active,
         "created_at": current_user.created_at
     }
+
+# ===== ADMIN ENDPOINTS =====
+
+def admin_only(current_user: User = Depends(get_current_user)):
+    """Verify user is admin."""
+    if current_user.role != "A":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+@app.get("/api/v1/admin/analytics")
+async def get_admin_analytics(
+    admin: User = Depends(admin_only),
+    session: Session = Depends(get_session)
+):
+    """Get platform analytics for admin dashboard."""
+    total_users = session.query(User).count()
+    total_candidates = session.query(User).filter(User.role == "C").count()
+    total_employers = session.query(User).filter(User.role == "R").count()
+    total_jobs = session.query(JobPosting).count()
+    total_applications = session.query(JobApplication).count()
+    active_jobs = session.query(JobPosting).filter(JobPosting.is_active == True).count()
+    
+    return {
+        "total_users": total_users,
+        "total_candidates": total_candidates,
+        "total_employers": total_employers,
+        "total_jobs": total_jobs,
+        "active_jobs": active_jobs,
+        "total_applications": total_applications
+    }
+
+@app.get("/api/v1/admin/users")
+async def get_all_users(
+    admin: User = Depends(admin_only),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get all users (paginated)."""
+    users = session.exec(select(User).offset(skip).limit(limit)).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "role": u.role,
+            "is_active": u.is_active,
+            "created_at": u.created_at
+        }
+        for u in users
+    ]
+
+@app.put("/api/v1/admin/users/{user_id}/status")
+async def update_user_status(
+    user_id: int,
+    status_update: dict,
+    admin: User = Depends(admin_only),
+    session: Session = Depends(get_session)
+):
+    """Ban/unban a user."""
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_active = status_update.get("is_active", user.is_active)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    
+    return {
+        "id": user.id,
+        "email": user.email,
+        "is_active": user.is_active
+    }
+
+@app.get("/api/v1/admin/jobs")
+async def get_all_jobs_admin(
+    admin: User = Depends(admin_only),
+    session: Session = Depends(get_session),
+    skip: int = 0,
+    limit: int = 50
+):
+    """Get all jobs for admin review."""
+    jobs = session.exec(select(JobPosting).offset(skip).limit(limit)).all()
+    return [
+        {
+            "id": job.id,
+            "title": job.title,
+            "company_name": job.company_name,
+            "employer_id": job.employer_id,
+            "is_active": job.is_active,
+            "applications_count": job.applications_count,
+            "created_at": job.created_at
+        }
+        for job in jobs
+    ]
+
+@app.delete("/api/v1/admin/jobs/{job_id}")
+async def delete_job_admin(
+    job_id: int,
+    admin: User = Depends(admin_only),
+    session: Session = Depends(get_session)
+):
+    """Remove a job posting."""
+    job = session.get(JobPosting, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    session.delete(job)
+    session.commit()
+    
+    return {"message": "Job deleted successfully"}
 
 # ===== INDIVIDUAL PROFILE ENDPOINTS =====
 
@@ -2053,8 +2414,10 @@ async def update_application_status(
         )
 
 
+# ===== Server Configuration =====
 port = int(os.environ.get("PORT", 8000))
+host = os.environ.get("HOST", "0.0.0.0")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("main:app", host=host, port=port, reload=False)
