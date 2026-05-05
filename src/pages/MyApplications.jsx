@@ -24,6 +24,13 @@ export default function MyApplications() {
     const fetchApplications = async () => {
       try {
         const token = localStorage.getItem('dashhr_token');
+        const role = localStorage.getItem('dashhr_role');
+        // Only candidates should fetch their applications
+        if (role !== 'C') {
+          setError('Only candidates can view applications');
+          setLoading(false);
+          return;
+        }
         if (!token) {
           setError('You must be logged in to view applications');
           setLoading(false);

@@ -52,9 +52,22 @@ const AuthPage = () => {
           
           // Smart redirect based on the backend's onboarding flag
           if (!data.onboarding_completed) {
-            navigate(data.role === 'C' ? '/onboarding/candidate' : '/onboarding/employer');
+            if (data.role === 'C') {
+              navigate('/onboarding/candidate');
+            } else if (data.role === 'R') {
+              navigate('/onboarding/employer');
+            } else {
+              // Admins don't have onboarding — send to admin dashboard
+              navigate('/admin');
+            }
           } else {
-            navigate(data.role === 'C' ? '/dashboard' : '/employer');
+            if (data.role === 'C') {
+              navigate('/dashboard');
+            } else if (data.role === 'R') {
+              navigate('/employer');
+            } else {
+              navigate('/admin');
+            }
           }
         } else {
           throw new Error(data.detail || data.message || 'Incorrect email or password');
