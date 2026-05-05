@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, getRole, checkAuthStatus } from '../utils/auth';
 import { motion } from 'framer-motion';
-import { Users, Briefcase, BarChart3, Trash2, Toggle2, AlertCircle, Loader } from 'lucide-react';
+import { Users, Briefcase, BarChart3, Trash2, ToggleRight, AlertCircle, Loader } from 'lucide-react';
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
@@ -264,7 +264,7 @@ export default function Admin() {
                           disabled={actionLoading === user.id}
                           className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {actionLoading === user.id ? <Loader className="w-3 h-3 animate-spin" /> : <Toggle2 size={14} />}
+                          {actionLoading === user.id ? <Loader className="w-3 h-3 animate-spin" /> : <ToggleRight size={14} />}
                           {user.is_active ? 'Ban' : 'Unban'}
                         </button>
                       </td>
