@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, getRole, checkAuthStatus } from '../utils/auth';
 import { motion } from 'framer-motion';
 import { Users, Briefcase, BarChart3, Trash2, ToggleRight, AlertCircle, Loader } from 'lucide-react';
+import { isVercelAnalyticsLoaded, getVercelMetrics, trackEvent, fetchAdminAnalytics } from '../utils/analytics';
 
 const API_BASE_URL = 'https://atlas-backend-1-jvkb.onrender.com/api/v1';
 
@@ -37,18 +38,12 @@ export default function Admin() {
         }
 
         if (activeTab === 'analytics') {
-          const response = await fetch(`${API_BASE_URL}/admin/analytics`, {
-            headers: {
-              'Authorization': `Bearer ${access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (checkAuthStatus(response, navigate)) return;
-
-          if (!response.ok) throw new Error('Failed to fetch analytics');
-          const data = await response.json();
-          setAnalytics(data);
+          try {
+            const data = await fetchAdminAnalytics(API_BASE_URL, access_token);
+            setAnalytics(data);
+          } catch (err) {
+            throw err;
+          }
         } else if (activeTab === 'users') {
           const response = await fetch(`${API_BASE_URL}/admin/users?skip=0&limit=100`, {
             headers: {
@@ -212,17 +207,54 @@ export default function Admin() {
             </div>
           </div>
         ) : activeTab === 'analytics' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {analytics && (
-              <>
-                <StatCard icon={Users} title="Total Users" value={analytics.total_users} color="bg-blue-600" />
-                <StatCard icon={Users} title="Candidates" value={analytics.total_candidates} color="bg-green-600" />
-                <StatCard icon={Users} title="Employers" value={analytics.total_employers} color="bg-purple-600" />
-                <StatCard icon={Briefcase} title="Total Jobs" value={analytics.total_jobs} color="bg-orange-600" />
-                <StatCard icon={Briefcase} title="Active Jobs" value={analytics.active_jobs} color="bg-cyan-600" />
-                <StatCard icon={Briefcase} title="Applications" value={analytics.total_applications} color="bg-pink-600" />
-              </>
-            )}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {analytics && (
+                <>
+                  <StatCard icon={Users} title="Total Users" value={analytics.total_users} color="bg-blue-600" />
+                  <StatCard icon={Users} title="Candidates" value={analytics.total_candidates} color="bg-green-600" />
+                  <StatCard icon={Users} title="Employers" value={analytics.total_employers} color="bg-purple-600" />
+                  <StatCard icon={Briefcase} title="Total Jobs" value={analytics.total_jobs} color="bg-orange-600" />
+                  <StatCard icon={Briefcase} title="Active Jobs" value={analytics.active_jobs} color="bg-cyan-600" />
+                  <StatCard icon={Briefcase} title="Applications" value={analytics.total_applications} color="bg-pink-600" />
+                </>
+              )}
+            </div>
+
+            {/* Client-side analytics panel (Vercel) */}
+            <div className="bg-white dark:bg-[#12141C] p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Client Analytics</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">This panel shows whether client-side analytics (Vercel Web Analytics) is loaded and lets you emit a test event.</p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Vercel analytics loaded:</p>
+                  <p className="font-medium">{isVercelAnalyticsLoaded() ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Client metrics (if available):</p>
+                  <pre className="text-xs text-slate-700 dark:text-slate-300 bg-gray-50 dark:bg-white/5 p-2 rounded max-w-xl overflow-auto">{JSON.stringify(getVercelMetrics(), null, 2) || '—'}</pre>
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    const ok = trackEvent('admin_test_event', { time: Date.now() });
+                    if (!ok) alert('No analytics provider available to track events.');
+                    else alert('Test event sent (best-effort).');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Send test event
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-gray-100 dark:bg-white/5 text-slate-900 dark:text-white rounded hover:opacity-90"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
           </div>
         ) : activeTab === 'users' ? (
           <div className="bg-white dark:bg-[#12141C] rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
